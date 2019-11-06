@@ -1,17 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { provideMockStore } from '@ngrx/store/testing';
-
 import { createFeatureSelector, Store } from '@ngrx/store';
+import { provideMockStore } from '@ngrx/store/testing';
 import { Key } from './decorators';
-import {
-  buildFacade,
-  buildFeatureState,
-  buildSelectorMap,
-  buildState,
-  FEATURE_AFFINITY,
-  IEntityState,
-  ISelectorMap
-} from './util';
+import { buildFacade, buildFeatureState, buildSelectorMap, buildState, FEATURE_AFFINITY, IEntityState, ISelectorMap } from './util';
+
 
 class Test {
   @Key id: number;
@@ -132,3 +124,4 @@ describe('Utilities', () => {
     });
   });
 });
+

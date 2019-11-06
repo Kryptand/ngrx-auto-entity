@@ -1,4 +1,4 @@
-import { buildFeatureState, IEntityState } from '@briebug/ngrx-auto-entity';
+import { buildFeatureState, IEntityState }from 'projects/ngrx-auto-entity/src/public_api';
 import { OrderItem } from '../models/orderItem.model';
 import { ordersFeatureState } from './feature.state';
 

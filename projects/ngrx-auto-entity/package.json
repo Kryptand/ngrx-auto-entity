@@ -1,6 +1,6 @@
 {
-  "version": "0.2.7",
-  "name": "@briebug/ngrx-auto-entity",
+  "version": "0.2.8",
+  "name": "@kryptand/ngrx-auto-entity",
   "description": "Automatic Entity State and Facades for NgRx. Simplifying reactive state!",
   "keywords": [
     "ngrx",
@@ -14,10 +14,10 @@
     "effect",
     "facade"
   ],
-  "homepage": "https://briebug.gitbook.io/ngrx-auto-entity/",
+  "homepage": "https://github.com/Kryptand/ngrx-auto-entity",
   "repository": {
     "type": "git",
-    "url": "https://github.com/briebug/ngrx-auto-entity.git"
+    "url": "https://github.com/Kryptand/ngrx-auto-entity"
   },
   "peerDependencies": {
     "@angular/common": "^8.x",

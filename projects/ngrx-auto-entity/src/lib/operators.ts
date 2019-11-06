@@ -63,7 +63,10 @@ import {
   UpdateMany,
   UpdateManyFailure,
   UpdateManySuccess,
-  UpdateSuccess
+  UpdateSuccess,
+  SynchronizeDelayDelete,
+  SynchronizeDelayDeleteSuccess,
+  SynchronizeDelayDeleteFailure
 } from './actions';
 import { IEntityError, IEntityPageRef, IEntityRangeRef, IEntityRef, NgrxAutoEntityService } from './service';
 
@@ -142,7 +145,6 @@ export class EntityOperators {
         })
       );
   }
-
   loadPage<TModel>() {
     return (source: Observable<LoadPage<TModel>>) =>
       source.pipe(
@@ -272,6 +274,22 @@ export class EntityOperators {
           );
         })
       );
+  }
+  synchronizeDeleteDelay<TModel>() {
+    return (source: Observable<SynchronizeDelayDelete<TModel>>) =>{
+      console.debug('called');
+      return   source.pipe(
+        mergeMap(({ info, entities }) => {
+          return this.entityService.deleteMany<TModel>(info, entities).pipe(
+            map((ref: IEntityRef<TModel[]>) => new SynchronizeDelayDeleteSuccess<TModel>(ref.info.modelType,ref.entity)),
+            catchError((error: IEntityError<TModel>) =>
+              handleError(error, new SynchronizeDelayDeleteFailure<TModel>(error.info.modelType, error.err))
+            )
+          );
+        })
+      );
+    }
+
   }
 
   deleteMany<TModel>() {

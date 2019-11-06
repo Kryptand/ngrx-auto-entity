@@ -1,31 +1,6 @@
 import { ActionReducer } from '@ngrx/store';
 import { camelCase } from '../util/case';
-import {
-  Change,
-  CreateManySuccess,
-  CreateSuccess,
-  DeleteManySuccess,
-  DeleteSuccess,
-  DeselectMany,
-  DeselectManyByKeys,
-  Edit,
-  EntityActions,
-  EntityActionTypes,
-  IEntityAction,
-  LoadPageSuccess,
-  LoadRangeSuccess,
-  LoadSuccess,
-  ReplaceManySuccess,
-  ReplaceSuccess,
-  Select,
-  SelectByKey,
-  SelectMany,
-  SelectManyByKeys,
-  SelectMore,
-  SelectMoreByKeys,
-  UpdateManySuccess,
-  UpdateSuccess
-} from './actions';
+import { Change, CreateManySuccess, CreateSuccess, DeleteManySuccess, DeleteSuccess, DeselectMany, DeselectManyByKeys, Edit, EntityActions, EntityActionTypes, IEntityAction, LoadPageSuccess, LoadRangeSuccess, LoadSuccess, ReplaceManySuccess, ReplaceSuccess, Select, SelectByKey, SelectDeleteDelay, SelectMany, SelectManyByKeys, SelectMore, SelectMoreByKeys, UpdateManySuccess, UpdateSuccess, SelectDeleteDelayByKey, DeselectDeleteDelayByKey, DeselectDeleteDelay } from './actions';
 import { getKey } from './decorators';
 import { FEATURE_AFFINITY } from './util';
 
@@ -49,7 +24,7 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
   let featureName: string;
   let entityState: any;
 
-  if (Object.values(EntityActionTypes).includes(action.actionType)) {
+  if (Object.values(EntityActionTypes).includes(action.actionType as EntityActionTypes)) {
     stateName = stateNameFromAction(action);
     featureName = featureNameFromAction(action);
     entityState = featureName ? state[featureName][stateName] : state[stateName];
@@ -371,6 +346,133 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
       const next = setNewState(featureName, stateName, state, newState);
       return next;
     }
+    case EntityActionTypes.SynchronizeDelayDelete: {
+      const newState = {
+        ...entityState,
+        isSaving: true
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.SynchronizeDelayDeleteFailure: {
+      const newState = {
+        ...entityState,
+        isSaving: false
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.SynchronizeDelayDeleteSuccess:{
+      const deletedEntities = (action as DeleteManySuccess<any>).entities;
+      const deletedIds = deletedEntities.map(entity => getKey(action, entity));
+      const newState = {
+        ...entityState,
+        delayedDeleteEntityKeys: [],
+        entities: {
+          ...(entityState.entities || {}),
+          ...deletedEntities.reduce(
+            (entities, entity) => ({
+              ...entities,
+              [getKey(action, entity)]: undefined
+            }),
+            {}
+          )
+        },
+        ids: [...entityState.ids.filter(sid => !deletedIds.some(did => did === sid))],
+        isDeleting: false,
+        deletedAt: new Date()
+    }
+
+    const next = setNewState(featureName, stateName, state, newState);
+    return next;
+  }
+    case EntityActionTypes.DeselectAllDeleteDelay: {
+      const newState = {
+        ...entityState,
+        delayedDeleteEntityKeys: [],
+        isSaving: false
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.SelectDeleteDelay: {
+      const entity = (action as SelectDeleteDelay<any>).entity;
+      if (!entity) {
+        return state;
+      }
+
+      const key = getKey(action, entity);
+      let newState;
+      if(!Array.isArray(entityState.delayedDeleteEntityKeys)){
+        newState = {
+          ...entityState,
+          delayedDeleteEntityKeys: [key]
+        };
+      }else{
+        newState = {
+          ...entityState,
+          delayedDeleteEntityKeys: [...entityState.delayedDeleteEntityKeys, key]
+        };
+      }
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.SelectDeleteDelayByKey: {
+      const key = (action as SelectDeleteDelayByKey<any>).entityKey;
+      if (!key) {
+        return state;
+      }
+      let newState;
+      if(!Array.isArray(entityState.delayedDeleteEntityKeys)){
+        newState = {
+          ...entityState,
+          delayedDeleteEntityKeys: [key]
+        };
+      }else{
+        newState = {
+          ...entityState,
+          delayedDeleteEntityKeys: [...entityState.delayedDeleteEntityKeys, key]
+        };
+      }
+
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.DeselectDeleteDelayByKey: {
+      const key = (action as DeselectDeleteDelayByKey<any>).entityKey;
+      if (!key||(!Array.isArray(entityState.delayedDeleteEntityKeys))) {
+        return state;
+      }
+      const newState = {
+        ...entityState,
+        delayedDeleteEntityKeys: [...entityState.delayedDeleteEntityKeys.filter(entityKey=>entityKey!==key)]
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.DeselectDeleteDelay: {
+      const entity = (action as DeselectDeleteDelay<any>).entity;
+      if (!entity) {
+        return state;
+      }
+      const key = getKey(action, entity);
+      if (!key||(!Array.isArray(entityState.delayedDeleteEntityKeys))) {
+        return state;
+      }
+      const newState = {
+        ...entityState,
+        delayedDeleteEntityKeys: [...entityState.delayedDeleteEntityKeys.filter(entityKey=>entityKey!==key)]
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
 
     case EntityActionTypes.UpdateMany: {
       const newState = {
@@ -575,6 +677,7 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
         ids: [],
         currentEntityKey: undefined,
         currentEntitiesKeys: undefined,
+        delayedDeleteEntityKeys: undefined,
         editedEntity: undefined,
         isDirty: undefined,
         currentPage: undefined,
@@ -774,3 +877,4 @@ export function autoEntityMetaReducer(reducer: ActionReducer<any>): ActionReduce
     return autoEntityReducer(reducer, state, action);
   };
 }
+

@@ -86,7 +86,16 @@ export enum EntityActionTypes {
   Change = '[Entity] (Generic) Change',
   Changed = '[Entity] (Generic) Changed',
   EndEdit = '[Entity] (Generic) Edit: End',
-  EditEnded = '[Entity] (Generic) Edit: Ended'
+  EditEnded = '[Entity] (Generic) Edit: Ended',
+
+  SelectDeleteDelay = '[Entity] (Generic) Select DeleteDelay',
+  SelectDeleteDelayByKey = '[Entity] (Generic) Select DeleteDelay by Key',
+  DeselectDeleteDelay = '[Entity] (Generic) Deselect DeleteDelay',
+  DeselectDeleteDelayByKey = '[Entity] (Generic) Deselect DeleteDelay by Key',
+  DeselectAllDeleteDelay = '[Entity] (Generic) Deselect All DeleteDelay',
+  SynchronizeDelayDelete = '[Entity] (Generic) Synchronize Delayed Delete',
+  SynchronizeDelayDeleteSuccess = '[Entity] (Generic) Synchronize Delayed Delete Success',
+  SynchronizeDelayDeleteFailure = '[Entity] (Generic) Synchronize Delayed Delete Failure'
 }
 
 /**
@@ -145,6 +154,23 @@ export class Load<TModel> extends EntityAction<TModel> {
 export class LoadSuccess<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entity: TModel) {
     super(type, EntityActionTypes.LoadSuccess);
+  }
+}
+export class SynchronizeDelayDelete<TModel> extends EntityAction<TModel> {
+  constructor(type: new () => TModel,public entities:TModel[]) {
+    super(type, EntityActionTypes.SynchronizeDelayDelete);
+  }
+}
+
+export class SynchronizeDelayDeleteSuccess<TModel> extends EntityAction<TModel> {
+  constructor(type: new () => TModel,public entities:TModel[]) {
+    super(type, EntityActionTypes.SynchronizeDelayDeleteSuccess);
+  }
+}
+
+export class SynchronizeDelayDeleteFailure<TModel> extends EntityAction<TModel> {
+  constructor(type: new () => TModel, public error: any) {
+    super(type, EntityActionTypes.SynchronizeDelayDeleteFailure);
   }
 }
 
@@ -489,6 +515,61 @@ export class SelectManyByKeys<TModel> extends EntityAction<TModel> {
 }
 
 /**
+ * Selects a single entity for deletion in the store by the entity model
+ */
+export class SelectDeleteDelay<TModel> extends EntityAction<TModel> {
+ constructor(type: new () => TModel, public entity: TModel) {
+  super(type, EntityActionTypes.SelectDeleteDelay);
+
+  if (entity == null) {
+    throw new Error('[NGRX-AE] ! SelectByKey requires an entity.');
+  }
+}
+}
+/**
+ * Selects a single entity for deletion in the store by key in the entity model
+ */
+export class DeselectDeleteDelayByKey<TModel> extends EntityAction<TModel> {
+  constructor(type: new () => TModel, public entityKey: EntityIdentity) {
+    super(type, EntityActionTypes.DeselectDeleteDelayByKey);
+
+    if (entityKey == null) {
+      throw new Error('[NGRX-AE] ! SelectByKey requires an entity key.');
+    }
+  }
+ }
+
+/**
+ * Selects a single entity for deletion in the store by the entity model
+ */
+export class DeselectDeleteDelay<TModel> extends EntityAction<TModel> {
+  constructor(type: new () => TModel, public entity: TModel) {
+   super(type, EntityActionTypes.DeselectDeleteDelay);
+
+   if (entity == null) {
+     throw new Error('[NGRX-AE] ! SelectByKey requires an entity.');
+   }
+ }
+ }
+ export class DeselectAllDeleteDelay<TModel> extends EntityAction<TModel> {
+  constructor(type: new () => TModel) {
+   super(type, EntityActionTypes.DeselectAllDeleteDelay);
+ }
+ }
+ /**
+  * Selects a single entity for deletion in the store by key in the entity model
+  */
+ export class SelectDeleteDelayByKey<TModel> extends EntityAction<TModel> {
+   constructor(type: new () => TModel, public entityKey: EntityIdentity) {
+     super(type, EntityActionTypes.SelectDeleteDelayByKey);
+
+     if (entityKey == null) {
+       throw new Error('[NGRX-AE] ! SelectByKey requires an entity key.');
+     }
+   }
+  }
+
+/**
  * Selects more entities in the store by the entity keys
  */
 export class SelectMoreByKeys<TModel> extends EntityAction<TModel> {
@@ -716,7 +797,14 @@ export type EntityActions<TModel> =
   | Change<TModel>
   | Changed<TModel>
   | EndEdit<TModel>
-  | EditEnded<TModel>;
+  | EditEnded<TModel>
+  | SynchronizeDelayDelete<TModel>
+  | SynchronizeDelayDeleteSuccess<TModel>
+  | SynchronizeDelayDeleteFailure<TModel>
+  | SelectDeleteDelay<TModel>
+  | SelectDeleteDelayByKey<TModel>
+  | DeselectDeleteDelay<TModel>
+  | DeselectDeleteDelayByKey<TModel> | DeselectAllDeleteDelay<TModel>;
 
 export const isEntityActionInstance = (action: IEntityAction): boolean =>
   action instanceof Load ||
@@ -776,7 +864,15 @@ export const isEntityActionInstance = (action: IEntityAction): boolean =>
   action instanceof Change ||
   action instanceof Changed ||
   action instanceof EndEdit ||
-  action instanceof EditEnded;
+  action instanceof EditEnded ||
+  action instanceof SynchronizeDelayDelete ||
+  action instanceof SynchronizeDelayDeleteSuccess ||
+  action instanceof SynchronizeDelayDeleteFailure ||
+  action instanceof SelectDeleteDelayByKey ||
+  action instanceof SelectDeleteDelay||
+  action instanceof DeselectDeleteDelay ||
+  action instanceof DeselectDeleteDelayByKey||
+  action instanceof DeselectAllDeleteDelay;
 
 /**
  * Operator to filter actions by an entity action type or multiple action types.

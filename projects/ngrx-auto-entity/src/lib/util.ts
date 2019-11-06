@@ -10,6 +10,9 @@ import {
   DeleteMany,
   Deselect,
   DeselectAll,
+  DeselectAllDeleteDelay,
+  DeselectDeleteDelay,
+  DeselectDeleteDelayByKey,
   DeselectMany,
   DeselectManyByKeys,
   Edit,
@@ -23,15 +26,19 @@ import {
   ReplaceMany,
   Select,
   SelectByKey,
+  SelectDeleteDelay,
+  SelectDeleteDelayByKey,
   SelectMany,
   SelectManyByKeys,
   SelectMore,
   SelectMoreByKeys,
+  SynchronizeDelayDelete,
   Update,
   UpdateMany
 } from './actions';
 // NOTE: The following line MUST import:  IPage, IPageInfo, IRangeInfo, Page, Range; Required for AOT!
-import { IPage, IPageInfo, IRangeInfo, Page, Range } from './models'; // NOTE: Keep ALL imports here!!!!
+import { Page, Range } from './models'; // NOTE: Keep ALL imports here!!!!
+import { first } from 'rxjs/operators';
 
 /**
  * Structure for how entities are stored within the `entities` state property:
@@ -51,6 +58,7 @@ export interface IEntityState<TModel> {
   ids: EntityIdentity[];
   currentEntityKey?: EntityIdentity;
   currentEntitiesKeys?: EntityIdentity[];
+  delayedDeleteEntityKeys?: EntityIdentity[];
   editedEntity?: Partial<TModel>;
   isDirty?: boolean;
   currentPage?: Page;
@@ -101,6 +109,8 @@ export interface ISelectorMap<TParentState, TModel> {
   selectSavedAt: MemoizedSelector<object | TParentState, Date>;
   selectCreatedAt: MemoizedSelector<object | TParentState, Date>;
   selectDeletedAt: MemoizedSelector<object | TParentState, Date>;
+  selectDelayedDeleteEntityKeys: MemoizedSelector<object | TParentState, EntityIdentity[]>;
+  selectDelayedDeleteEntities: MemoizedSelector<object | TParentState, TModel[]>;
 }
 
 export const buildSelectorMap = <TParentState, TState extends IEntityState<TModel>, TModel>(
@@ -138,6 +148,14 @@ export const buildSelectorMap = <TParentState, TState extends IEntityState<TMode
     selectCurrentEntitiesKeys: createSelector(
       getState,
       (state: TState): EntityIdentity[] => state.currentEntitiesKeys
+    ),
+    selectDelayedDeleteEntities: createSelector(
+      getState,
+      (state: TState): TModel[] => state.delayedDeleteEntityKeys.map(key => state.entities[key])
+    ),
+    selectDelayedDeleteEntityKeys: createSelector(
+      getState,
+      (state: TState): EntityIdentity[] => state.delayedDeleteEntityKeys
     ),
     selectEditedEntity: createSelector(
       getState,
@@ -206,6 +224,8 @@ export interface IEntityFacade<TModel> {
   currentKey$: Observable<EntityIdentity>;
   currentSet$: Observable<TModel[]>;
   currentSetKeys$: Observable<EntityIdentity[]>;
+  delayedDelete$: Observable<TModel[]>;
+  delayedDeleteKeys$: Observable<EntityIdentity[]>;
   edited$: Observable<Partial<TModel>>;
   isDirty$: Observable<boolean>;
   currentPage$: Observable<Page>;
@@ -236,6 +256,17 @@ export interface IEntityFacade<TModel> {
   deselectMany(entities: TModel[]): void;
 
   deselectManyByKeys(keys: EntityIdentity[]): void;
+
+  selectDeleteDelay(entity: TModel): void;
+
+  selectDeleteDelayByKey(key: EntityIdentity): void;
+
+  deselectDeleteDelay(entity: TModel): void;
+
+  deselectDeleteDelayByKey(key: EntityIdentity): void;
+  synchronizeDelayDelete(): void;
+
+  deselectAllDeleteDelay(): void;
 
   deselectAll(): void;
 
@@ -368,6 +399,12 @@ export const buildFacade = <TModel, TParentState>(selectors: ISelectorMap<TParen
     get deletedAt$(): Observable<Date> {
       return this.store.pipe(select(selectors.selectDeletedAt));
     }
+    get delayedDeleteKeys$(): Observable<EntityIdentity[]> {
+      return this.store.pipe(select(selectors.selectDelayedDeleteEntityKeys));
+    }
+    get delayedDelete$(): Observable<TModel[]> {
+      return this.store.pipe(select(selectors.selectDelayedDeleteEntities));
+    }
 
     // endregion
 
@@ -406,6 +443,27 @@ export const buildFacade = <TModel, TParentState>(selectors: ISelectorMap<TParen
 
     deselectManyByKeys(keys: EntityIdentity[]): void {
       this.store.dispatch(new DeselectManyByKeys(this.modelType, keys));
+    }
+
+    selectDeleteDelay(entity: TModel): void {
+      this.store.dispatch(new SelectDeleteDelay(this.modelType, entity));
+    }
+    selectDeleteDelayByKey(key: EntityIdentity): void {
+      this.store.dispatch(new SelectDeleteDelayByKey(this.modelType, key));
+    }
+    deselectDeleteDelay(entity: TModel): void {
+      this.store.dispatch(new DeselectDeleteDelay(this.modelType, entity));
+    }
+    deselectDeleteDelayByKey(key: EntityIdentity): void {
+      this.store.dispatch(new DeselectDeleteDelayByKey(this.modelType, key));
+    }
+    deselectAllDeleteDelay(): void {
+      this.store.dispatch(new DeselectAllDeleteDelay(this.modelType));
+    }
+    synchronizeDelayDelete(): void {
+      this.delayedDelete$
+        .pipe(first())
+        .subscribe(deleteEntities => this.store.dispatch(new SynchronizeDelayDelete(this.modelType, deleteEntities)));
     }
 
     deselectAll(): void {
@@ -504,6 +562,7 @@ export const buildState = <TState extends IEntityState<TModel>, TParentState, TM
   const initialState = {
     entities: {},
     ids: [],
+    delayedDeleteEntityKeys: [],
     ...extraInitialState
   } as TState;
 
@@ -553,6 +612,7 @@ export const buildFeatureState = <TState extends IEntityState<TModel>, TParentSt
   const initialState = {
     entities: {},
     ids: [],
+    delayedDeleteEntityKeys: [],
     ...extraInitialState
   } as TState;
 

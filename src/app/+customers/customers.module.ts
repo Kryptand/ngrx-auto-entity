@@ -3,7 +3,6 @@ import { NgModule } from '@angular/core';
 import { FlexLayoutModule } from '@angular/flex-layout';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { NgrxAutoEntityModule } from '@briebug/ngrx-auto-entity';
 
 import { MaterialModule } from './../material.module';
 import { CustomerFormComponent } from './components/customer-form/customer-form.component';
@@ -11,6 +10,7 @@ import { CustomersTableComponent } from './components/customers-table/customers-
 import { CustomerComponent } from './containers/customer/customer.component';
 import { CustomersComponent } from './containers/customers/customers.component';
 import { routes } from './customers.routing';
+import { NgrxAutoEntityModule } from 'projects/ngrx-auto-entity/src/lib/module';
 
 @NgModule({
   imports: [

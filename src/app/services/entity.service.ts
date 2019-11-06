@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
-import { IAutoEntityService, IEntityInfo } from '@briebug/ngrx-auto-entity';
-import { Observable } from 'rxjs';
+import { IAutoEntityService, IEntityInfo }from 'projects/ngrx-auto-entity/src/public_api';
+import { Observable, forkJoin, of } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
 
@@ -37,4 +37,11 @@ export class EntityService implements IAutoEntityService<any> {
       .delete<any>(`${environment.API_BASE_URL}/${entityInfo.modelName.toLowerCase()}s/${entity.id}`)
       .pipe(map(() => entity));
   }
+  deleteMany(entityInfo: IEntityInfo, entities: any[], criteria?: any): Observable<any[]>{
+  console.debug(entities);
+      return forkJoin(entities.map(entity=>this.http
+    .delete<any>(`${environment.API_BASE_URL}/${entityInfo.modelName.toLowerCase()}s/${entity.id}`).pipe(map(()=>entity))));
+
+}
+
 }

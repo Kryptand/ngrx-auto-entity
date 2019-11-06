@@ -1,6 +1,6 @@
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { getTestBed, TestBed } from '@angular/core/testing';
-import { IEntityInfo, NgrxAutoEntityModule } from '@briebug/ngrx-auto-entity';
+import { IEntityInfo, NgrxAutoEntityModule }from 'projects/ngrx-auto-entity/src/public_api';
 import { Customer } from 'models/customer.model';
 import { environment } from '../../environments/environment';
 import { EntityService } from './entity.service';

@@ -127,7 +127,11 @@ export class EntityEffects {
     ofEntityAction(EntityActionTypes.DeleteMany),
     this.ops.deleteMany()
   );
-
+  @Effect()
+  synchronizeDelete$ = this.actions$.pipe(
+    ofEntityAction(EntityActionTypes.SynchronizeDelayDelete),
+    this.ops.synchronizeDeleteDelay()
+  );
   constructor(private actions$: Actions, private ops: EntityOperators) {}
 }
 

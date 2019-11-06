@@ -2402,14 +2402,6 @@
   ],
   "products": [
     {
-      "id": 7,
-      "name": "Handcrafted Concrete Gloves",
-      "price": "310.00",
-      "color": "teal",
-      "details": "Tasty",
-      "dateAdded": "2019-06-11T13:41:32.304Z"
-    },
-    {
       "id": 9,
       "name": "Generic Metal Chicken",
       "price": "817.00",
@@ -2432,14 +2424,6 @@
       "color": "fuchsia",
       "details": "Incredible",
       "dateAdded": "2018-10-11T03:51:49.907Z"
-    },
-    {
-      "id": 12,
-      "name": "Tasty Metal Chicken",
-      "price": "981.00",
-      "color": "turquoise",
-      "details": "Handcrafted",
-      "dateAdded": "2018-08-27T09:29:06.501Z"
     },
     {
       "id": 13,

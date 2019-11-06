@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ModuleWithProviders, NgModule, Optional, SkipSelf } from '@angular/core';
-import { NgrxAutoEntityModule } from '@briebug/ngrx-auto-entity';
+import { NgrxAutoEntityModule }from 'projects/ngrx-auto-entity/src/public_api';
 import { EffectsModule } from '@ngrx/effects';
 import { RouterStateSerializer, StoreRouterConnectingModule } from '@ngrx/router-store';
 import { StoreModule } from '@ngrx/store';

@@ -3,5 +3,7 @@
   <div class="actions" fxLayout="row" fxLayoutAlign="end">
     <a mat-stroked-button routerLink="add" color="primary">Add Product</a>
   </div>
+  {{(delayDelete$|async)|json}}
+  <button (click)="onExecute()"> kram</button>
   <app-products-table [products]="products$ | async" (delete)="onDelete($event)" (edit)="onEdit($event)"></app-products-table>
 </div>

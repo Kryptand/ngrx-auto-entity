@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { MatSnackBar } from '@angular/material';
-import { EntityActionTypes, EntityOperators, ofEntityType } from '@briebug/ngrx-auto-entity';
+import { EntityActionTypes, EntityOperators, ofEntityType }from 'projects/ngrx-auto-entity/src/public_api';
 import { Actions, Effect } from '@ngrx/effects';
 import { Action } from '@ngrx/store';
 import { Product } from 'models/product.model';

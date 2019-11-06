@@ -1,4 +1,4 @@
-import { buildState, IEntityState } from '@briebug/ngrx-auto-entity';
+import { buildState, IEntityState }from 'projects/ngrx-auto-entity/src/public_api';
 import { Account } from 'models/account.model';
 
 export const { initialState, facade: AccountFacadeBase } = buildState(Account);

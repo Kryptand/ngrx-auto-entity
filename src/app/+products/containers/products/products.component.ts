@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 
 import { ProductFacade } from 'facades/product.facade';
 import { Product } from 'models/product.model';
+import { first } from 'rxjs/operators';
 
 @Component({
   selector: 'app-products',
@@ -12,18 +13,21 @@ import { Product } from 'models/product.model';
 })
 export class ProductsComponent implements OnInit {
   products$: Observable<Product[]>;
-
+  delayDelete$: Observable<Product[]>;
   constructor(private router: Router, private productFacade: ProductFacade) {}
 
   ngOnInit() {
     this.productFacade.loadAll();
+    this.delayDelete$ = this.productFacade.delayedDelete$;
     this.products$ = this.productFacade.all$;
   }
 
   onDelete(product: Product) {
-    this.productFacade.delete(product);
+    this.productFacade.selectDeleteDelay(product);
   }
-
+  onExecute() {
+    this.productFacade.synchronizeDelayDelete();
+  }
   onEdit(product: Product) {
     this.productFacade.select(product);
     this.router.navigate(['products', product.id]);
