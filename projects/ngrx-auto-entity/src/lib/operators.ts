@@ -277,7 +277,6 @@ export class EntityOperators {
   }
   synchronizeDeleteDelay<TModel>() {
     return (source: Observable<SynchronizeDelayDelete<TModel>>) =>{
-      console.debug('called');
       return   source.pipe(
         mergeMap(({ info, entities }) => {
           return this.entityService.deleteMany<TModel>(info, entities).pipe(
