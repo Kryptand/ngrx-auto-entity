@@ -21,6 +21,7 @@ import {
   ReplaceSuccess,
   Select,
   SelectByKey,
+  SelectDeleteDelay,
   SelectDeleteDelayByKey,
   SelectMany,
   SelectManyByKeys,
