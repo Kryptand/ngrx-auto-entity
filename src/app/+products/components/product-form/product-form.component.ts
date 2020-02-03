@@ -1,8 +1,9 @@
 import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
-import { Product } from 'models/product.model';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+
+import { Product } from '../../../models';
 
 @Component({
   selector: 'app-product-form',
@@ -20,7 +21,7 @@ export class ProductFormComponent implements OnChanges, OnDestroy {
   formGroup: FormGroup;
 
   /** Subject to trigger unsubscribe */
-  private unsubscribe = new Subject<void>();
+  private unsubscribe$ = new Subject<void>();
 
   constructor(private formBuilder: FormBuilder) {
     this.buildForm();
@@ -33,8 +34,8 @@ export class ProductFormComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.unsubscribe.next();
-    this.unsubscribe.complete();
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 
   private buildForm() {
@@ -45,7 +46,7 @@ export class ProductFormComponent implements OnChanges, OnDestroy {
       dateAdded: [new Date(), Validators.required]
     });
 
-    this.formGroup.valueChanges.pipe(takeUntil(this.unsubscribe)).subscribe(value => {
+    this.formGroup.valueChanges.pipe(takeUntil(this.unsubscribe$)).subscribe(value => {
       this.productChange.emit({
         product: {
           ...this.product,

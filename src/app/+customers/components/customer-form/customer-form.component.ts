@@ -2,7 +2,8 @@ import { Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleCha
 import { FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { Customer } from '../../../models/customer.model';
+
+import { Customer } from '../../../models';
 
 @Component({
   selector: 'app-customer-form',
@@ -20,7 +21,7 @@ export class CustomerFormComponent implements OnChanges, OnDestroy {
   formGroup: FormGroup;
 
   /** Subject to trigger unsubscribe */
-  private unsubscribe = new Subject<void>();
+  private unsubscribe$ = new Subject<void>();
 
   constructor(private formBuilder: FormBuilder) {
     this.buildForm();
@@ -33,8 +34,8 @@ export class CustomerFormComponent implements OnChanges, OnDestroy {
   }
 
   ngOnDestroy() {
-    this.unsubscribe.next();
-    this.unsubscribe.complete();
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
   }
 
   private buildForm() {
@@ -44,7 +45,7 @@ export class CustomerFormComponent implements OnChanges, OnDestroy {
       isActive: [true]
     });
 
-    this.formGroup.valueChanges.pipe(takeUntil(this.unsubscribe)).subscribe(value => {
+    this.formGroup.valueChanges.pipe(takeUntil(this.unsubscribe$)).subscribe(value => {
       this.customerChange.emit({
         customer: {
           ...this.customer,

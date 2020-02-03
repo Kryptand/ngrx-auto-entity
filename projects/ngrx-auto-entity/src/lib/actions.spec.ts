@@ -53,7 +53,7 @@ import {
   UpdateManySuccess,
   UpdateSuccess
 } from './actions';
-import { Key } from './decorators';
+import { Key } from './decorators/key';
 
 class TestEntity {
   @Key id: number;
@@ -102,12 +102,29 @@ const testError = {
 
 const criteria = { criteria: 'test' };
 
+const regex = {
+  v4: /^(?:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[a-f0-9]{4}-[a-f0-9]{12})|(?:0{8}-0{4}-0{4}-0{4}-0{12})$/u,
+  v5: /^(?:[a-f0-9]{8}-[a-f0-9]{4}-5[a-f0-9]{3}-[a-f0-9]{4}-[a-f0-9]{12})|(?:0{8}-0{4}-0{4}-0{4}-0{12})$/u
+};
+
+const isUuid = (value: string): boolean => {
+  return regex.v4.test(value) || regex.v5.test(value);
+};
+
 describe('NgRX Auto-Entity: Actions', () => {
   let actions: Observable<any>;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
       providers: [provideMockActions(() => actions)]
+    });
+  });
+
+  describe('Correlated Actions', () => {
+    it('should construct EntityAction with correlationId initialized to a random uuid', () => {
+      const action = new Load(TestEntity, 1);
+
+      expect(isUuid(action.correlationId)).toEqual(true);
     });
   });
 

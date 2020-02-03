@@ -36,6 +36,7 @@ import {
   Update,
   UpdateMany
 } from './actions';
+import { ENTITY_OPTS_PROP } from './decorators/entity-tokens';
 // NOTE: The following line MUST import:  IPage, IPageInfo, IRangeInfo, Page, Range; Required for AOT!
 import { Page, Range } from './models'; // NOTE: Keep ALL imports here!!!!
 import { first } from 'rxjs/operators';
@@ -51,7 +52,8 @@ export interface IEntityDictionary<TModel> {
 export type EntityIdentity = string | number;
 
 /**
- * Structure for how entities are stored along with the array of their keys
+ * Structure for how entities are stored, including useful computed properties
+ * such as an array of their keys, status flags, timestamps, etc.
  */
 export interface IEntityState<TModel> {
   entities: IEntityDictionary<TModel>;
@@ -74,7 +76,7 @@ export interface IEntityState<TModel> {
 }
 
 /**
- * Structure of the model state built by the builtState() function
+ * Structure of the model state built by the buildState() function
  */
 export interface IModelState<TParentState, TState, TModel> {
   initialState: TState;
@@ -92,6 +94,7 @@ export interface ISelectorMap<TParentState, TModel> {
   selectIds: MemoizedSelector<object | TParentState, EntityIdentity[]>;
   selectEntities: MemoizedSelector<object | TParentState, IEntityDictionary<TModel>>;
   selectAll: MemoizedSelector<object | TParentState, TModel[]>;
+  selectAllSorted: MemoizedSelector<object | TParentState, TModel[]>;
   selectTotal: MemoizedSelector<object | TParentState, number>;
   selectCurrentEntity: MemoizedSelector<object | TParentState, TModel>;
   selectCurrentEntityKey: MemoizedSelector<object | TParentState, EntityIdentity>;
@@ -114,40 +117,51 @@ export interface ISelectorMap<TParentState, TModel> {
 }
 
 export const buildSelectorMap = <TParentState, TState extends IEntityState<TModel>, TModel>(
-  getState: Selector<TParentState, TState> | MemoizedSelector<object | TParentState, TState>
+  getState: Selector<TParentState, TState> | MemoizedSelector<object | TParentState, TState>,
+  compareFn?: (a, b) => number
 ): ISelectorMap<TParentState, TModel> =>
   ({
     selectAll: createSelector(
       getState,
-      (state: TState): TModel[] => state.ids.map(id => state.entities[id])
+      (state: TState): TModel[] =>
+        !state || !state.ids || !state.entities ? [] : state.ids.map(id => state.entities[id])
+    ),
+    selectAllSorted: createSelector(
+      getState,
+      (state: TState): TModel[] =>
+        (!state || !state.ids || !state.entities ? [] : state.ids.map(id => state.entities[id])).sort(compareFn)
     ),
     selectEntities: createSelector(
       getState,
-      (state: TState): IEntityDictionary<TModel> => state.entities
+      (state: TState): IEntityDictionary<TModel> => (!state || !state.entities ? {} : state.entities)
     ),
     selectIds: createSelector(
       getState,
-      (state: TState): EntityIdentity[] => state.ids
+      (state: TState): EntityIdentity[] => (!state || !state.ids ? [] : state.ids)
     ),
     selectTotal: createSelector(
       getState,
-      (state: TState): number => state.ids.length
+      (state: TState): number => (!state || !state.ids ? 0 : state.ids.length)
     ),
     selectCurrentEntity: createSelector(
       getState,
-      (state: TState): TModel => state.entities[state.currentEntityKey]
+      (state: TState): TModel =>
+        !state || !state.entities || !state.currentEntityKey ? null : state.entities[state.currentEntityKey]
     ),
     selectCurrentEntityKey: createSelector(
       getState,
-      (state: TState): EntityIdentity => state.currentEntityKey
+      (state: TState): EntityIdentity => (!state ? null : state.currentEntityKey)
     ),
     selectCurrentEntities: createSelector(
       getState,
-      (state: TState): TModel[] => state.currentEntitiesKeys.map(key => state.entities[key])
+      (state: TState): TModel[] =>
+        !state || !state.currentEntitiesKeys || !state.entities
+          ? []
+          : state.currentEntitiesKeys.map(key => state.entities[key])
     ),
     selectCurrentEntitiesKeys: createSelector(
       getState,
-      (state: TState): EntityIdentity[] => state.currentEntitiesKeys
+      (state: TState): EntityIdentity[] => (!state || !state.currentEntitiesKeys ? [] : state.currentEntitiesKeys)
     ),
     selectDelayedDeleteEntities: createSelector(
       getState,
@@ -159,51 +173,51 @@ export const buildSelectorMap = <TParentState, TState extends IEntityState<TMode
     ),
     selectEditedEntity: createSelector(
       getState,
-      (state: TState): Partial<TModel> => state.editedEntity
+      (state: TState): Partial<TModel> => (!state ? null : state.editedEntity)
     ),
     selectIsDirty: createSelector(
       getState,
-      (state: TState): boolean => !!state.isDirty
+      (state: TState): boolean => (!state ? false : !!state.isDirty)
     ),
     selectCurrentPage: createSelector(
       getState,
-      (state: TState): Page => state.currentPage
+      (state: TState): Page => (!state ? null : state.currentPage)
     ),
     selectCurrentRange: createSelector(
       getState,
-      (state: TState): Range => state.currentRange
+      (state: TState): Range => (!state ? null : state.currentRange)
     ),
     selectTotalPageable: createSelector(
       getState,
-      (state: TState): number => state.totalPageableCount
+      (state: TState): number => (!state ? 0 : state.totalPageableCount)
     ),
     selectIsLoading: createSelector(
       getState,
-      (state: TState): boolean => !!state.isLoading
+      (state: TState): boolean => (!state ? false : !!state.isLoading)
     ),
     selectIsSaving: createSelector(
       getState,
-      (state: TState): boolean => !!state.isSaving
+      (state: TState): boolean => (!state ? false : !!state.isSaving)
     ),
     selectIsDeleting: createSelector(
       getState,
-      (state: TState): boolean => !!state.isDeleting
+      (state: TState): boolean => (!state ? false : !!state.isDeleting)
     ),
     selectLoadedAt: createSelector(
       getState,
-      (state: TState): Date => state.loadedAt
+      (state: TState): Date => (!state ? null : state.loadedAt)
     ),
     selectSavedAt: createSelector(
       getState,
-      (state: TState): Date => state.savedAt
+      (state: TState): Date => (!state ? null : state.savedAt)
     ),
     selectCreatedAt: createSelector(
       getState,
-      (state: TState): Date => state.createdAt
+      (state: TState): Date => (!state ? null : state.createdAt)
     ),
     selectDeletedAt: createSelector(
       getState,
-      (state: TState): Date => state.deletedAt
+      (state: TState): Date => (!state ? null : state.deletedAt)
     )
   } as ISelectorMap<TParentState, TModel>);
 
@@ -217,6 +231,7 @@ export type IModelClass<TModel> = new () => TModel;
  */
 export interface IEntityFacade<TModel> {
   all$: Observable<TModel[]>;
+  sorted$: Observable<TModel[]>;
   entities$: Observable<IEntityDictionary<TModel>>;
   ids$: Observable<EntityIdentity[]>;
   total$: Observable<number>;
@@ -322,6 +337,10 @@ export const buildFacade = <TModel, TParentState>(selectors: ISelectorMap<TParen
     // region Selections
     get all$(): Observable<TModel[]> {
       return this.store.pipe(select(selectors.selectAll));
+    }
+
+    get sorted$(): Observable<TModel[]> {
+      return this.store.pipe(select(selectors.selectAllSorted));
     }
 
     get entities$(): Observable<IEntityDictionary<TModel>> {
@@ -537,6 +556,7 @@ export const buildFacade = <TModel, TParentState>(selectors: ISelectorMap<TParen
     clear(): void {
       this.store.dispatch(new Clear(this.modelType));
     }
+
     // endregion
   };
 
@@ -553,9 +573,22 @@ export const buildState = <TState extends IEntityState<TModel>, TParentState, TM
   type: IModelClass<TModel>,
   extraInitialState?: any
 ): IModelState<TParentState, TState, TModel> => {
-  const modelName = camelCase(new type().constructor.name);
+  const instance = new type();
+  const opts = type[ENTITY_OPTS_PROP] || {
+    modelName: instance.constructor.name,
+    comparer: () => 0
+  };
+  const modelName = camelCase(opts.modelName);
 
-  const getState = (state: TParentState): TState => state[modelName];
+  console.log(`NGRX-AE: Building entity state for: ${modelName}; constructor name: ${instance.constructor.name}`);
+  const getState = (state: TParentState): TState => {
+    const modelState = state[modelName];
+    if (!modelState) {
+      console.error(`NGRX-AE: State for model ${modelName} could not be found!`);
+      throw new Error(`State could not be found for model ${modelName}!`);
+    }
+    return modelState;
+  };
 
   // This uses ES6/TS computed property names: http://es6-features.org/#ComputedPropertyNames
 
@@ -566,7 +599,7 @@ export const buildState = <TState extends IEntityState<TModel>, TParentState, TM
     ...extraInitialState
   } as TState;
 
-  const selectors = buildSelectorMap<TParentState, TState, TModel>(getState);
+  const selectors = buildSelectorMap<TParentState, TState, TModel>(getState, opts.comparer);
   const facade = buildFacade<TModel, TParentState>(selectors);
   const reducer = (state = initialState): IEntityState<TModel> => {
     // tslint:disable-line
@@ -599,12 +632,30 @@ export const buildFeatureState = <TState extends IEntityState<TModel>, TParentSt
   selectParentState: MemoizedSelector<object, TParentState>,
   extraInitialState?: any
 ): IModelState<TParentState, TState, TModel> => {
-  const modelName = camelCase(new type().constructor.name);
+  const instance = new type();
+  const opts = type[ENTITY_OPTS_PROP] || {
+    modelName: instance.constructor.name
+  };
+  const modelName = camelCase(opts.modelName);
+  console.log(
+    `NGRX-AE: Building entity feature state for: ${type.name}; constructor name: ${instance.constructor.name}`
+  );
+
   (type as any)[FEATURE_AFFINITY] = featureStateName;
 
   const selectState = createSelector(
     selectParentState,
-    (state: TParentState) => state[modelName]
+    (state: TParentState) => {
+      if (!state) {
+        console.error(`NGRX-AE: Could not retrieve feature state ${featureStateName} for model ${modelName}!`);
+      }
+      const modelState = state[modelName];
+      if (!modelState) {
+        console.error(`NGRX-AE: State for model ${modelName} in feature ${featureStateName} could not be found!`);
+        throw new Error(`State could not be found for model ${modelName} in feature ${featureStateName}!`);
+      }
+      return modelState;
+    }
   );
 
   // This uses ES6/TS computed property names: http://es6-features.org/#ComputedPropertyNames

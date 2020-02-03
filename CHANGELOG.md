@@ -1,3 +1,66 @@
+<a name="0.4.0"></a>
+
+# [0.4.0](https://github.com/briebug/ngrx-auto-entity/compare/0.3.1...0.4.0) Beta (2020-01-13)
+
+Introducing the `@Entity` decorator for model classes. This decorator provides custom naming capabilities,
+the ability to filter which auto-entity pre-fab effects handle each model, as well as define a default
+comparer for sorting entities retrieved with a new .sorted$ stream on pre-fab facades.
+
+### Features
+- **decorators:** Add `@Entity` decorator for models with modelName, pluralName, uriName properties (#70)
+- **decorators:** Add `excludeEffects` functionality to `@Entity` decorator for filtering which effects handle entity
+- **decorators:** Add `comparer` property to `@Entity` decorator to support selecting sorted entities (#58)
+- **selectors:** Add `selectAllSorted` selector that uses entity comparer to sort on selection (#58)
+- **facades:** Add `sorted$` stream to return all entities in sorted order from `selectAllSorted` selector (#58)  
+
+### Internal 
+
+- **decorators:** Moved all decorators into internal /lib/decorators directory (will break direct imports, use public api!)
+
+### Bug Fix
+- **selectors:** Added additional falsy checks to all selectors to limit frequency of hard failures (#81)
+- **decorators:** Added `modelName` to `@Entity` decorator to allow explicit definition of model name immune to mangling by code minifiers (#81) 
+
+<a name="0.3.1"></a>
+
+# [0.3.1](https://github.com/briebug/ngrx-auto-entity/compare/0.3.0...0.3.1) Beta (2020-01-07)
+
+Bug fix release! We apologize for any inconvenience the v0.3.0 release may have caused. We introduced
+a correlation Id into our actions, and relied on `uuidv4` to handle their generation. Turned out, uuidv4
+just recently went through a breaking change, and the default import was removed. This caused problems,
+dependent upon which version of uuidv4 was used by the application using ngrx-ae.
+
+We have replaced uuidv4 with internal code. Fast, small uuid function acquired from the following gist:
+
+https://gist.github.com/LeverOne/1308368
+
+### Bug Fix
+- **[uuidv4](https://www.npmjs.com/package/uuidv4):** Removed in favor of small, fast built in function 
+
+<a name="0.3.0"></a>
+
+# [0.3.0](https://github.com/briebug/ngrx-auto-entity/compare/0.2.8...0.3.0) Beta (2019-11-26)
+
+This release adds the `correlationId` property (defaulting to `uuid()`) to `EntityAction` which should help in tracking correlated actions.
+Correlated actions are usually sets of request/success/failure actions, such as `Create`, `CreateSuccess`, and `CreateFailure`.
+
+### Features
+
+- **correlated actions:** Add `correlationId` property to `EntityAction` for tracking correlated actions. (#75)
+
+### Package
+
+- **dependencies:** Add peer dependency on [uuidv4](https://www.npmjs.com/package/uuidv4)
+
+### Breaking Changes !!
+
+- [uuidv4](https://www.npmjs.com/package/uuidv4) will need to be added to your `package.json` as a dependency
+
+### Security Updates
+
+- [handlebars](https://github.com/briebug/ngrx-auto-entity/pull/82) bumped to 4.5.3
+
+
 <a name="0.2.8"></a>
 
 # [0.2.8](https://github.com/briebug/ngrx-auto-entity/compare/0.2.7...0.2.8) Beta (2019-11-19)
@@ -14,15 +77,15 @@ This release restores a missing action to the library public interface index.
 # [0.2.7](https://github.com/briebug/ngrx-auto-entity/compare/0.2.6...0.2.7) Beta (2019-10-13)
 
 This release restores a missing selector and adds a new factory function for use with
-custom effects creation. 
+custom effects creation.
 
 ### Features
 
-- **actions:** Add fromEntityTypes factory function for multi-entity multi-action effects filtering
+- **actions:** Add fromEntityTypes factory function for multi-entity multi-action effects filtering (#66)
 
 ### Bug Fixes
 
-- **selectors:** Add createdAt facade getter and corresponding selectors
+- **selectors:** Add createdAt facade getter and corresponding selectors (#65)
 
 
 
@@ -30,7 +93,7 @@ custom effects creation.
 
 # [0.2.6](https://github.com/briebug/ngrx-auto-entity/compare/0.2.5...0.2.6) Beta (2019-09-05)
 
-This release resolves two issues with multiple-entity deselections due to bugs in the 
+This release resolves two issues with multiple-entity deselections due to bugs in the
 reduction of deselectMany and deselectAll.
 
 ### Features
@@ -46,7 +109,7 @@ reduction of deselectMany and deselectAll.
 # [0.2.5](https://github.com/briebug/ngrx-auto-entity/compare/0.2.2...0.2.5) Beta (2019-08-12)
 
 This release add new actions (and related effects, reducers, selectors & facade features) for
-edit and change tracking as well as adding more entities to the current set selection. 
+edit and change tracking as well as adding more entities to the current set selection.
 
 ### Features
 
@@ -62,7 +125,7 @@ This release focuses on reducing the intrinsic package size and total package+de
 the library. Total library size is now ~10k or so smaller than before. Third party dependency on
 changeCase, which included a lot of casing functionality this library did not directly require, has
 been removed in favor of integrated case conversion code. Further size optimizations may be made
-possible in the future with some additional internal restructuring. 
+possible in the future with some additional internal restructuring.
 
 For the most compatibility with future internal (but otherwise non-breaking) changes, make sure
 you are importing from @briebug/ngrx-auto-entity and not from child paths within the library!
@@ -131,10 +194,10 @@ the changes and future improvements allowed by making this change will be welcom
  - **effects:** Added missing effects for select/deselect actions to dispatch selected/deselected counterparts
  - **service:** Updated `NgrxAutoEntityService` to support aggregate Injector tree so that models/entity services in lazy loaded modules will be found by root entity service
  - **util:** Changed `interface ITModelType<TModel>` to a `type IModelType<TModel>` to better conform to TypeScript best practices
- 
+
  ### Breaking Changes !!
   - **facade:** Updated facade base class to include a $ postfix on all streaming properties
- 
+
 
 
 <a name="0.1.1"></a>
