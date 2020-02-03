@@ -17,6 +17,7 @@ import {
   DeselectMany,
   DeselectManyByKeys,
   EntityActionTypes,
+  fromEntityActions,
   Load,
   LoadAll,
   LoadAllFailure,
@@ -43,6 +44,8 @@ import {
   SelectByKey,
   SelectMany,
   SelectManyByKeys,
+  SelectMore,
+  SelectMoreByKeys,
   Update,
   UpdateFailure,
   UpdateMany,
@@ -56,6 +59,11 @@ class TestEntity {
   @Key id: number;
   firstName: string;
   lastName: string;
+}
+
+class AltEntity {
+  @Key id: number;
+  data: string;
 }
 
 const brian: TestEntity = {
@@ -766,6 +774,61 @@ describe('NgRX Auto-Entity: Actions', () => {
 
       expect(action.entities).toEqual(scientists);
     });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMany(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMany action requires an array of entities.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMany(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMany action requires an array of entities.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMany(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMany action requires an array of entities.'));
+    });
+  });
+
+  describe('Action: SelectMore', () => {
+    it('should construct EntityAction with proper details', () => {
+      const action = new SelectMore(TestEntity, scientists);
+
+      expect(action.type).toEqual('[TestEntity] (Generic) Select More');
+      expect(action.actionType).toEqual(EntityActionTypes.SelectMore);
+      expect(action.info.modelType).toEqual(TestEntity);
+      expect(action.info.modelName).toEqual('TestEntity');
+
+      expect(action.entities).toEqual(scientists);
+    });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMore(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMore action requires an array of entities.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMore(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMore action requires an array of entities.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMore(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMore action requires an array of entities.'));
+    });
   });
 
   describe('Action: SelectByKey', () => {
@@ -814,6 +877,72 @@ describe('NgRX Auto-Entity: Actions', () => {
 
       expect(action.entitiesKeys).toEqual(['key_a', 'key_b']);
     });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectManyByKeys(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! SelectManyByKeys action requires an array of entity keys.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectManyByKeys(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! SelectManyByKeys action requires an array of entity keys.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectManyByKeys(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! SelectManyByKeys action requires an array of entity keys.'));
+    });
+  });
+
+  describe('Action: SelectMoreByKeys', () => {
+    it('should construct EntityAction with proper details (number keys)', () => {
+      const action = new SelectMoreByKeys(TestEntity, [1, 2]);
+
+      expect(action.type).toEqual('[TestEntity] (Generic) Select More by Keys');
+      expect(action.actionType).toEqual(EntityActionTypes.SelectMoreByKeys);
+      expect(action.info.modelType).toEqual(TestEntity);
+      expect(action.info.modelName).toEqual('TestEntity');
+
+      expect(action.entitiesKeys).toEqual([1, 2]);
+    });
+
+    it('should construct EntityAction with proper details (string keys)', () => {
+      const action = new SelectMoreByKeys(TestEntity, ['key_a', 'key_b']);
+
+      expect(action.type).toEqual('[TestEntity] (Generic) Select More by Keys');
+      expect(action.actionType).toEqual(EntityActionTypes.SelectMoreByKeys);
+      expect(action.info.modelType).toEqual(TestEntity);
+      expect(action.info.modelName).toEqual('TestEntity');
+
+      expect(action.entitiesKeys).toEqual(['key_a', 'key_b']);
+    });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMoreByKeys(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMoreByKeys action requires an array of entity keys.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMoreByKeys(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMoreByKeys action requires an array of entity keys.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new SelectMoreByKeys(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! SelectMoreByKeys action requires an array of entity keys.'));
+    });
   });
 
   describe('Action: Deselect', () => {
@@ -838,9 +967,30 @@ describe('NgRX Auto-Entity: Actions', () => {
 
       expect(action.entities).toEqual(scientists);
     });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectMany(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectMany action requires an array of entities.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectMany(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectMany action requires an array of entities.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectMany(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectMany action requires an array of entities.'));
+    });
   });
 
-  describe('Action: DeelectManyByKeys', () => {
+  describe('Action: DeselectManyByKeys', () => {
     it('should construct EntityAction with proper details (number keys)', () => {
       const action = new DeselectManyByKeys(TestEntity, [1, 2]);
 
@@ -861,6 +1011,27 @@ describe('NgRX Auto-Entity: Actions', () => {
       expect(action.info.modelName).toEqual('TestEntity');
 
       expect(action.entitiesKeys).toEqual(['key_a', 'key_b']);
+    });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectManyByKeys(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectManyByKeys action requires an array of entity keys.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectManyByKeys(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectManyByKeys action requires an array of entity keys.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectManyByKeys(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectManyByKeys action requires an array of entity keys.'));
     });
   });
 
@@ -896,6 +1067,27 @@ describe('NgRX Auto-Entity: Actions', () => {
       expect(action.info.modelName).toEqual('TestEntity');
 
       expect(action.entities).toEqual(scientists);
+    });
+
+    it('should throw error during construction if non-array (object) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectedMany(TestEntity, {} as any);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectedMany action requires an array of entities or keys.'));
+    });
+
+    it('should throw error during construction if non-array (null) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectedMany(TestEntity, null);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectedMany action requires an array of entities or keys.'));
+    });
+
+    it('should throw error during construction if non-array (undefined) passed', () => {
+      expect(() => {
+        // tslint:disable-next-line:no-unused-expression
+        new DeselectedMany(TestEntity, undefined);
+      }).toThrow(new Error('[NGRX-AE] ! DeselectedMany action requires an array of entities or keys.'));
     });
   });
 
@@ -1067,6 +1259,108 @@ describe('NgRX Auto-Entity: Actions', () => {
       const expected = hot('----------');
       const result = actions.pipe(ofEntityType(TestEntity, EntityActionTypes.LoadPage));
 
+      expect(result).toBeObservable(expected);
+    });
+  });
+
+  describe('Operator: fromEntityTypes<TModel, T extends EntityAction>', () => {
+    it('should match action type and entity types', () => {
+      const action1 = new Load(TestEntity, 'id');
+      const action2 = new Load(AltEntity, 'id');
+
+      actions = hot('-a-b', { a: action1, b: action2 });
+      const expected = hot('-a-b', { a: action1, b: action2 });
+      const result = fromEntityActions(actions, [TestEntity, AltEntity], EntityActionTypes.Load);
+
+      expect(result).toBeObservable(expected);
+    });
+
+    it('should match action type and entity types and ignore prior non-matching', () => {
+      const action1 = new LoadAll(TestEntity);
+      const action2 = new Load(TestEntity, 'id');
+      const action3 = new Load(AltEntity, 'id');
+
+      actions = hot('-a-b-c', { a: action1, b: action2, c: action3 });
+      const expected = hot('---b-c', { b: action2, c: action3 });
+      const result = fromEntityActions(actions, [TestEntity, AltEntity], EntityActionTypes.Load);
+
+      expect(result).toBeObservable(expected);
+    });
+
+    it('should match action type and entity types and ignore intermediate non-matching', () => {
+      const action1 = new LoadAll(TestEntity);
+      const action2 = new Load(TestEntity, 'id');
+      const action3 = new Load(AltEntity, 'id');
+
+      actions = hot('-a-b-c', { a: action2, b: action1, c: action3 });
+      const expected = hot('-a---c-', { a: action2, c: action3 });
+      const result = fromEntityActions(actions, [TestEntity, AltEntity], EntityActionTypes.Load);
+
+      expect(result).toBeObservable(expected);
+    });
+
+    it('should match action type and entity types and ignore prior and subsequent non-matching', () => {
+      const action1 = new LoadAll(TestEntity);
+      const action2 = new Load(TestEntity, 'id');
+      const action3 = new Load(AltEntity, 'id');
+      const action4 = new LoadAll(TestEntity);
+
+      actions = hot('-a-b-c-d', { a: action1, b: action2, c: action3, d: action4 });
+      const expected = hot('---b-c--', { b: action2, c: action3 });
+      const result = fromEntityActions(actions, [TestEntity, AltEntity], EntityActionTypes.Load);
+
+      expect(result).toBeObservable(expected);
+    });
+
+    it('should match multiple action types and entity types', () => {
+      const action1 = new LoadAll(TestEntity);
+      const action2 = new Load(TestEntity, 'id');
+      const action3 = new Load(AltEntity, 'id');
+      const action4 = new LoadAll(TestEntity);
+
+      actions = hot('-a-b-c-d', { a: action1, b: action2, c: action3, d: action4 });
+      const expected = hot('-a-b-c-d', { a: action1, b: action2, c: action3, d: action4 });
+      const result = fromEntityActions(
+        actions,
+        [TestEntity, AltEntity],
+        EntityActionTypes.Load,
+        EntityActionTypes.LoadAll
+      );
+
+      expect(result).toBeObservable(expected);
+    });
+
+    it('should match multiple action types and entity types and ignore non-matching', () => {
+      const action1 = new LoadAll(TestEntity);
+      const action2 = new LoadMany(TestEntity);
+      const action3 = new Load(TestEntity, 'id');
+      const action4 = new Load(AltEntity, 'id');
+      const action5 = new LoadAll(TestEntity);
+      const action6 = new LoadMany(TestEntity);
+
+      actions = hot('-a-b-c-d-e-f', { a: action1, b: action2, c: action3, d: action4, e: action5, f: action6 });
+      const expected = hot('-a---c-d-e--', { a: action1, c: action3, d: action4, e: action5 });
+      const result = fromEntityActions(
+        actions,
+        [TestEntity, AltEntity],
+        EntityActionTypes.Load,
+        EntityActionTypes.LoadAll
+      );
+
+      expect(result).toBeObservable(expected);
+    });
+
+    it('should match no action types if none match for entity types', () => {
+      const action1 = new LoadAll(TestEntity);
+      const action2 = new LoadMany(TestEntity);
+      const action3 = new Load(TestEntity, 'id');
+      const action4 = new Load(AltEntity, 'id');
+      const action5 = new LoadAll(TestEntity);
+      const action6 = new LoadMany(TestEntity);
+
+      actions = hot('-a-b-c-d-e-f', { a: action1, b: action2, c: action3, d: action4, e: action5, f: action6 });
+      const expected = hot('------------');
+      const result = fromEntityActions(actions, [TestEntity, AltEntity], EntityActionTypes.LoadPage);
       expect(result).toBeObservable(expected);
     });
   });

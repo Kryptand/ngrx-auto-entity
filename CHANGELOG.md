@@ -1,3 +1,46 @@
+<a name="0.2.8"></a>
+
+# [0.2.8](https://github.com/briebug/ngrx-auto-entity/compare/0.2.7...0.2.8) Beta (2019-11-19)
+
+This release restores a missing action to the library public interface index.
+
+### Bug Fixes
+
+- **actions:** Add clear action to exported actions of public interface
+
+
+<a name="0.2.7"></a>
+
+# [0.2.7](https://github.com/briebug/ngrx-auto-entity/compare/0.2.6...0.2.7) Beta (2019-10-13)
+
+This release restores a missing selector and adds a new factory function for use with
+custom effects creation. 
+
+### Features
+
+- **actions:** Add fromEntityTypes factory function for multi-entity multi-action effects filtering
+
+### Bug Fixes
+
+- **selectors:** Add createdAt facade getter and corresponding selectors
+
+
+
+<a name="0.2.6"></a>
+
+# [0.2.6](https://github.com/briebug/ngrx-auto-entity/compare/0.2.5...0.2.6) Beta (2019-09-05)
+
+This release resolves two issues with multiple-entity deselections due to bugs in the 
+reduction of deselectMany and deselectAll.
+
+### Features
+
+- **actions:** Add input validation checks and exception throwing to selection related actions
+- **reducer:** Fix issue with potential undefined in selection related reductions #62
+- **reducer:** Fix issue with calls to Array.prototype.some on certain arrays being implemented incorrectly #60
+
+
+
 <a name="0.2.5"></a>
 
 # [0.2.5](https://github.com/briebug/ngrx-auto-entity/compare/0.2.2...0.2.5) Beta (2019-08-12)

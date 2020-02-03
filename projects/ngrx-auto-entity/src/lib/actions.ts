@@ -1,5 +1,6 @@
+import { Actions } from '@ngrx/effects';
 import { Action } from '@ngrx/store';
-import { OperatorFunction } from 'rxjs';
+import { merge, Observable, OperatorFunction } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { pascalCase } from '../util/case';
 import { checkKeyName } from './decorators';
@@ -428,6 +429,10 @@ export class Clear<TModel> extends EntityAction<TModel> {
 export class Select<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entity: TModel) {
     super(type, EntityActionTypes.Select);
+
+    if (entity == null) {
+      throw new Error('[NGRX-AE] ! SelectByKey requires an entity.');
+    }
   }
 }
 
@@ -437,6 +442,10 @@ export class Select<TModel> extends EntityAction<TModel> {
 export class SelectByKey<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entityKey: EntityIdentity) {
     super(type, EntityActionTypes.SelectByKey);
+
+    if (entityKey == null) {
+      throw new Error('[NGRX-AE] ! SelectByKey requires an entity key.');
+    }
   }
 }
 
@@ -446,6 +455,10 @@ export class SelectByKey<TModel> extends EntityAction<TModel> {
 export class SelectMany<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entities: TModel[]) {
     super(type, EntityActionTypes.SelectMany);
+
+    if (!Array.isArray(entities)) {
+      throw new Error('[NGRX-AE] ! SelectMany action requires an array of entities.');
+    }
   }
 }
 
@@ -455,6 +468,10 @@ export class SelectMany<TModel> extends EntityAction<TModel> {
 export class SelectMore<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entities: TModel[]) {
     super(type, EntityActionTypes.SelectMore);
+
+    if (!Array.isArray(entities)) {
+      throw new Error('[NGRX-AE] ! SelectMore action requires an array of entities.');
+    }
   }
 }
 
@@ -464,6 +481,10 @@ export class SelectMore<TModel> extends EntityAction<TModel> {
 export class SelectManyByKeys<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entitiesKeys: EntityIdentity[]) {
     super(type, EntityActionTypes.SelectManyByKeys);
+
+    if (!Array.isArray(entitiesKeys)) {
+      throw new Error('[NGRX-AE] ! SelectManyByKeys action requires an array of entity keys.');
+    }
   }
 }
 
@@ -473,6 +494,10 @@ export class SelectManyByKeys<TModel> extends EntityAction<TModel> {
 export class SelectMoreByKeys<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entitiesKeys: EntityIdentity[]) {
     super(type, EntityActionTypes.SelectMoreByKeys);
+
+    if (!Array.isArray(entitiesKeys)) {
+      throw new Error('[NGRX-AE] ! SelectMoreByKeys action requires an array of entity keys.');
+    }
   }
 }
 
@@ -491,6 +516,10 @@ export class Selected<TModel> extends EntityAction<TModel> {
 export class SelectedMany<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entities: Array<TModel | EntityIdentity>) {
     super(type, EntityActionTypes.SelectedMany);
+
+    if (!Array.isArray(entities)) {
+      throw new Error('[NGRX-AE] ! SelectedMany action requires an array of entities or keys.');
+    }
   }
 }
 
@@ -500,6 +529,10 @@ export class SelectedMany<TModel> extends EntityAction<TModel> {
 export class SelectedMore<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entities: Array<TModel | EntityIdentity>) {
     super(type, EntityActionTypes.SelectedMore);
+
+    if (!Array.isArray(entities)) {
+      throw new Error('[NGRX-AE] ! SelectedMore action requires an array of entities or keys.');
+    }
   }
 }
 
@@ -518,6 +551,10 @@ export class Deselect<TModel> extends EntityAction<TModel> {
 export class DeselectMany<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entities: TModel[]) {
     super(type, EntityActionTypes.DeselectMany);
+
+    if (!Array.isArray(entities)) {
+      throw new Error('[NGRX-AE] ! DeselectMany action requires an array of entities.');
+    }
   }
 }
 
@@ -527,6 +564,10 @@ export class DeselectMany<TModel> extends EntityAction<TModel> {
 export class DeselectManyByKeys<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entitiesKeys: EntityIdentity[]) {
     super(type, EntityActionTypes.DeselectManyByKeys);
+
+    if (!Array.isArray(entitiesKeys)) {
+      throw new Error('[NGRX-AE] ! DeselectManyByKeys action requires an array of entity keys.');
+    }
   }
 }
 
@@ -554,6 +595,10 @@ export class Deselected<TModel> extends EntityAction<TModel> {
 export class DeselectedMany<TModel> extends EntityAction<TModel> {
   constructor(type: new () => TModel, public entities: Array<TModel | EntityIdentity>) {
     super(type, EntityActionTypes.DeselectedMany);
+
+    if (!Array.isArray(entities)) {
+      throw new Error('[NGRX-AE] ! DeselectedMany action requires an array of entities or keys.');
+    }
   }
 }
 
@@ -763,4 +808,13 @@ export function ofEntityType<TModel, T extends EntityAction<TModel>>(
       ? action.info.modelType === entity && allowedActionTypes.some(type => setType(type, action.info) === action.type)
       : false;
   });
+}
+
+export function fromEntityActions<T extends EntityAction<any>>(
+  actions$: Actions,
+  entity: Array<new () => any>,
+  ...allowedActionTypes: EntityActionTypes[]
+): Observable<Action> {
+  const entityActions = entity.map(e => actions$.pipe(ofEntityType(e, ...allowedActionTypes)));
+  return merge(...entityActions);
 }
