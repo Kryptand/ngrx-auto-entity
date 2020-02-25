@@ -1,18 +1,21 @@
-import { IEntityState } from '@briebug/ngrx-auto-entity';
 import { ActionReducerMap, MetaReducer } from '@ngrx/store';
 import { storeFreeze } from 'ngrx-store-freeze';
 
-import { customerReducer } from 'state/customer.state';
+import { IEntityState } from '@briebug/ngrx-auto-entity';
 import { environment } from '../../environments/environment';
-import { Customer } from '../models/customer.model';
+import { Account } from '../models/account.model';
+import { accountReducer } from './account.state';
+import { customerReducer, ICustomerState } from './customer.state';
 
 export interface IAppState {
-  customer: IEntityState<Customer>;
+  account: IEntityState<Account>;
+  customer: ICustomerState;
 }
 
 export type AppState = IAppState;
 
 export const appReducer: ActionReducerMap<AppState> = {
+  account: accountReducer,
   customer: customerReducer
 };
 

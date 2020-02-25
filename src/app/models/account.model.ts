@@ -1,5 +1,6 @@
-import { Key }from 'projects/ngrx-auto-entity/src/public_api';
+import { Entity, Key } from '@briebug/ngrx-auto-entity';
 
+@Entity({ modelName: 'Account' })
 export class Account {
   @Key id: number;
   customerId: number;

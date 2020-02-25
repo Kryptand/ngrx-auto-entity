@@ -4,12 +4,25 @@ import { catchError, map } from 'rxjs/operators';
 
 import { pascalCase } from '../util/case';
 import { IEntityInfo } from './actions';
+import { IEntityTransformer } from './decorators/entity';
 import { IPageInfo, IRangeInfo, Page, Range } from './models';
+import { IAutoEntityService } from './service';
+import { EntityIdentity } from './util';
 
 
 export interface IEntityRef<TModel> {
   info: IEntityInfo;
   entity: TModel;
+}
+
+export interface IEntityIdentityRef {
+  info: IEntityInfo;
+  entityIdentity: EntityIdentity;
+}
+
+export interface IEntityIdentitiesRef {
+  info: IEntityInfo;
+  entityIdentities: EntityIdentity[];
 }
 
 export interface IEntityError<TModel> {
@@ -36,6 +49,7 @@ export interface IEntityWithRangeInfo<TModel> {
   rangeInfo: IRangeInfo;
 }
 
+// prettier-ignore
 export interface IAutoEntityService<TModel> {
   load?(entityInfo: IEntityInfo, keys: any, criteria?: any): Observable<TModel>;
 
@@ -47,21 +61,25 @@ export interface IAutoEntityService<TModel> {
 
   loadRange?(entityInfo: IEntityInfo, range: Range, criteria?: any): Observable<IEntityWithRangeInfo<TModel>>;
 
-  create?(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<TModel>;
+  create?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
 
-  createMany?(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<TModel[]>;
+  createMany?(entityInfo: IEntityInfo, entities: Array<TModel | any>, criteria?: any, originalEntities?: TModel[]): Observable<TModel[]>;
 
-  update?(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<TModel>;
+  update?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
 
-  updateMany?(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<TModel[]>;
+  updateMany?(entityInfo: IEntityInfo, entities: Array<TModel | any>, criteria?: any, originalEntities?: TModel[]): Observable<TModel[]>;
 
-  replace?(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<TModel>;
+  replace?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
 
-  replaceMany?(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<TModel[]>;
+  replaceMany?(entityInfo: IEntityInfo, entities: Array<TModel | any>, criteria?: any, originalEntities?: TModel[]): Observable<TModel[]>;
 
-  delete?(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<TModel>;
+  delete?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
 
-  deleteMany?(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<TModel[]>;
+  deleteMany?(entityInfo: IEntityInfo, entities: Array<TModel | any>, criteria?: any, originalEntities?: TModel[]): Observable<TModel[]>;
+
+  deleteByKey?(entityInfo: IEntityInfo, key: EntityIdentity, criteria?: any): Observable<EntityIdentity>;
+
+  deleteManyByKeys?(entityInfo: IEntityInfo, keys: EntityIdentity[], criteria?: any): Observable<EntityIdentity[]>;
 }
 
 export const notImplemented = (method: string, entityInfo: IEntityInfo): string =>
@@ -149,6 +167,78 @@ export const callService = <TModel, TModelObs, TResult>(
 
 export const prepend = <T>(first: T, rest: ReadonlyArray<T>): ReadonlyArray<T> => [first, ...rest];
 
+const FROM = 'fromServer';
+const TO = 'toServer';
+
+export const getTransforms = (transform: IEntityTransformer[], prop: string): Array<(value: any) => any> =>
+  !!transform && !!transform.length ? transform.filter(tx => !!tx[prop]).map(tx => tx[prop]) : [value => value];
+
+export const applyTransforms = (transforms: Array<(value: any) => any>) => (originalEntity: any): any =>
+  transforms.reduce(
+    (entity, transform) => {
+      return transform(entity);
+    },
+    { ...originalEntity }
+  );
+
+export const transformFromServer = <TModel>(entityInfo: IEntityInfo) => (
+  entityRef: IEntityRef<TModel>
+): IEntityRef<TModel> => ({
+  ...entityRef,
+  entity: applyTransforms(getTransforms(entityInfo.transform, FROM))(entityRef.entity) as TModel
+});
+
+export const transformSetFromServer = <TModel>(entityInfo: IEntityInfo) => (
+  entityRef: IEntityRef<TModel[]>
+): IEntityRef<TModel[]> => {
+  const transforms = getTransforms(entityInfo.transform, FROM);
+
+  return {
+    ...entityRef,
+    entity: entityRef.entity.map(applyTransforms(transforms))
+  };
+};
+
+export const transformPageFromServer = <TModel>(entityInfo: IEntityInfo) => (
+  entityRef: IEntityPageRef<TModel>
+): IEntityPageRef<TModel> => {
+  const transforms = getTransforms(entityInfo.transform, FROM);
+
+  return {
+    ...entityRef,
+    entity: entityRef.entity.map(applyTransforms(transforms))
+  };
+};
+
+export const transformRangeFromServer = <TModel>(entityInfo: IEntityInfo) => (
+  entityRef: IEntityRangeRef<TModel>
+): IEntityRangeRef<TModel> => {
+  const transforms = getTransforms(entityInfo.transform, FROM);
+
+  return {
+    ...entityRef,
+    entity: entityRef.entity.map(applyTransforms(transforms))
+  };
+};
+
+export const transformSingleFromServer = <TModel>(entityInfo: IEntityInfo) => (entity: any): TModel => {
+  return applyTransforms(getTransforms(entityInfo.transform, FROM))(entity);
+};
+
+export const transformArrayFromServer = <TModel>(entityInfo: IEntityInfo) => (entities: TModel[]): TModel[] => {
+  const transforms = getTransforms(entityInfo.transform, FROM);
+  return entities.map(applyTransforms(transforms));
+};
+
+export const transformToServer = <TModel>(entityInfo: IEntityInfo) => (originalEntity: TModel): any =>
+  applyTransforms(getTransforms(entityInfo.transform, TO))(originalEntity);
+
+export const transformSetToServer = <TModel>(entityInfo: IEntityInfo) => (entities: TModel[]): any[] => {
+  const transforms = getTransforms(entityInfo.transform, TO);
+
+  return entities.map(applyTransforms(transforms));
+};
+
 /**
  * Looks up client-provided entity service class using Angular's injector and this package's naming
  * conventions.  Then calls client's service and provides success/failure handling.
@@ -170,7 +260,7 @@ export class NgrxAutoEntityService {
       this.injector,
       service => service.load(entityInfo, keys, criteria),
       entity => ({ info: entityInfo, entity })
-    );
+    ).pipe(map(transformFromServer(entityInfo)));
   }
 
   loadAll<TModel>(entityInfo: IEntityInfo, criteria?: any): Observable<IEntityRef<TModel[]>> {
@@ -180,7 +270,7 @@ export class NgrxAutoEntityService {
       this.injector,
       service => service.loadAll(entityInfo, criteria),
       entities => ({ info: entityInfo, entity: entities })
-    );
+    ).pipe(map(transformSetFromServer(entityInfo)));
   }
 
   loadMany<TModel>(entityInfo: IEntityInfo, criteria?: any): Observable<IEntityRef<TModel[]>> {
@@ -190,7 +280,7 @@ export class NgrxAutoEntityService {
       this.injector,
       service => service.loadMany(entityInfo, criteria),
       entities => ({ info: entityInfo, entity: entities })
-    );
+    ).pipe(map(transformSetFromServer(entityInfo)));
   }
 
   loadPage<TModel>(entityInfo: IEntityInfo, page: Page, criteria?: any): Observable<IEntityPageRef<TModel>> {
@@ -204,7 +294,7 @@ export class NgrxAutoEntityService {
         pageInfo: result.pageInfo,
         entity: result.entities
       })
-    );
+    ).pipe(map(transformPageFromServer(entityInfo)));
   }
 
   loadRange<TModel>(entityInfo: IEntityInfo, range: Range, criteria?: any): Observable<IEntityRangeRef<TModel>> {
@@ -218,86 +308,121 @@ export class NgrxAutoEntityService {
         rangeInfo: result.rangeInfo,
         entity: result.entities
       })
-    );
+    ).pipe(map(transformRangeFromServer(entityInfo)));
   }
 
   create<TModel>(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<IEntityRef<TModel>> {
+    const transformed = transformToServer(entityInfo)(entity);
     return callService<TModel, TModel, IEntityRef<TModel>>(
       'create',
       entityInfo,
       this.injector,
-      service => service.create(entityInfo, entity, criteria),
-      created => ({ info: entityInfo, entity: created })
+      service => service.create(entityInfo, transformed, criteria, entity),
+      created => ({ info: entityInfo, entity: transformSingleFromServer(entityInfo)(created) as TModel })
     );
   }
 
   createMany<TModel>(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<IEntityRef<TModel[]>> {
+    const transformed = transformSetToServer(entityInfo)(entities);
     return callService<TModel, TModel[], IEntityRef<TModel[]>>(
       'createMany',
       entityInfo,
       this.injector,
-      service => service.createMany(entityInfo, entities, criteria),
-      created => ({ info: entityInfo, entity: created })
+      service => service.createMany(entityInfo, transformed, criteria, entities),
+      created => ({ info: entityInfo, entity: transformArrayFromServer(entityInfo)(created) as TModel[] })
     );
   }
 
   update<TModel>(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<IEntityRef<TModel>> {
+    const transformed = transformToServer(entityInfo)(entity);
     return callService<TModel, TModel, IEntityRef<TModel>>(
       'update',
       entityInfo,
       this.injector,
-      service => service.update(entityInfo, entity, criteria),
-      updated => ({ info: entityInfo, entity: updated })
+      service => service.update(entityInfo, transformed, criteria, entity),
+      updated => ({ info: entityInfo, entity: transformSingleFromServer(entityInfo)(updated) as TModel })
     );
   }
 
   updateMany<TModel>(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<IEntityRef<TModel[]>> {
+    const transformed = transformSetToServer(entityInfo)(entities);
     return callService<TModel, TModel[], IEntityRef<TModel[]>>(
       'updateMany',
       entityInfo,
       this.injector,
-      service => service.updateMany(entityInfo, entities, criteria),
-      updatedEntities => ({ info: entityInfo, entity: updatedEntities })
+      service => service.updateMany(entityInfo, transformed, criteria, entities),
+      updatedEntities => ({
+        info: entityInfo,
+        entity: transformArrayFromServer(entityInfo)(updatedEntities) as TModel[]
+      })
     );
   }
 
   replace<TModel>(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<IEntityRef<TModel>> {
+    const transformed = transformToServer(entityInfo)(entity);
     return callService<TModel, TModel, IEntityRef<TModel>>(
       'replace',
       entityInfo,
       this.injector,
-      service => service.replace(entityInfo, entity, criteria),
-      replaced => ({ info: entityInfo, entity: replaced })
+      service => service.replace(entityInfo, transformed, criteria, entity),
+      replaced => ({ info: entityInfo, entity: transformSingleFromServer(entityInfo)(replaced) as TModel })
     );
   }
 
   replaceMany<TModel>(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<IEntityRef<TModel[]>> {
+    const transformed = transformSetToServer(entityInfo)(entities);
     return callService<TModel, TModel[], IEntityRef<TModel[]>>(
       'replaceMany',
       entityInfo,
       this.injector,
-      service => service.replaceMany(entityInfo, entities, criteria),
-      replaced => ({ info: entityInfo, entity: replaced })
+      service => service.replaceMany(entityInfo, transformed, criteria, entities),
+      replaced => ({ info: entityInfo, entity: transformArrayFromServer(entityInfo)(replaced) as TModel[] })
     );
   }
 
   delete<TModel>(entityInfo: IEntityInfo, entity: TModel, criteria?: any): Observable<IEntityRef<TModel>> {
+    const transformed = transformToServer(entityInfo)(entity);
     return callService<TModel, TModel, IEntityRef<TModel>>(
       'delete',
       entityInfo,
       this.injector,
-      service => service.delete(entityInfo, entity, criteria),
-      deleted => ({ info: entityInfo, entity: deleted })
+      service => service.delete(entityInfo, transformed, criteria, entity),
+      deleted => ({ info: entityInfo, entity: transformSingleFromServer(entityInfo)(deleted) as TModel })
     );
   }
 
   deleteMany<TModel>(entityInfo: IEntityInfo, entities: TModel[], criteria?: any): Observable<IEntityRef<TModel[]>> {
+    const transformed = transformSetToServer(entityInfo)(entities);
     return callService<TModel, TModel[], IEntityRef<TModel[]>>(
       'deleteMany',
       entityInfo,
       this.injector,
-      service => service.deleteMany(entityInfo, entities, criteria),
-      deleted => ({ info: entityInfo, entity: deleted })
+      service => service.deleteMany(entityInfo, transformed, criteria, entities),
+      deleted => ({ info: entityInfo, entity: transformArrayFromServer(entityInfo)(deleted) as TModel[] })
+    );
+  }
+
+  deleteByKey<TModel>(entityInfo: IEntityInfo, key: EntityIdentity, criteria?: any): Observable<IEntityIdentityRef> {
+    return callService<TModel, EntityIdentity, IEntityIdentityRef>(
+      'deleteByKey',
+      entityInfo,
+      this.injector,
+      service => service.deleteByKey(entityInfo, key, criteria),
+      deletedKey => ({ info: entityInfo, entityIdentity: deletedKey })
+    );
+  }
+
+  deleteManyByKey<TModel>(
+    entityInfo: IEntityInfo,
+    keys: EntityIdentity[],
+    criteria?: any
+  ): Observable<IEntityIdentitiesRef> {
+    return callService<TModel, EntityIdentity[], IEntityIdentitiesRef>(
+      'deleteManyByKeys',
+      entityInfo,
+      this.injector,
+      service => service.deleteManyByKeys(entityInfo, keys, criteria),
+      deletedKeys => ({ info: entityInfo, entityIdentities: deletedKeys })
     );
   }
 }

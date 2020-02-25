@@ -1,8 +1,11 @@
 import 'jest-extended';
 
 import {
+  Clear,
   CreateManySuccess,
   CreateSuccess,
+  DeleteByKeySuccess,
+  DeleteManyByKeysSuccess,
   DeleteManySuccess,
   DeleteSuccess,
   Deselect,
@@ -603,6 +606,54 @@ describe('NgRX Auto-Entity: Reducer', () => {
         }
       });
     });
+
+    it(`should reduce DeleteByKeySuccess and remove existing entity from state`, () => {
+      const state = {
+        testEntity: {
+          entities: { 1: { identity: 1 } },
+          ids: [1]
+        }
+      };
+      const rootReducer = jest.fn();
+      const metaReducer = autoEntityMetaReducer(rootReducer);
+      const newState = metaReducer(state, new DeleteByKeySuccess(TestEntity, 1));
+
+      expect(newState).toEqual({
+        testEntity: {
+          entities: {},
+          ids: [],
+          isDeleting: false,
+          deletedAt: expect.toBeDate()
+        }
+      });
+    });
+
+    it(`should reduce DeleteManyByKeySuccess and remove existing entities from state`, () => {
+      const state = {
+        testEntity: {
+          entities: {
+            2: { identity: 2 },
+            1: { identity: 1 },
+            3: { identity: 3 }
+          },
+          ids: [1, 2, 3]
+        }
+      };
+      const rootReducer = jest.fn();
+      const metaReducer = autoEntityMetaReducer(rootReducer);
+      const newState = metaReducer(state, new DeleteManyByKeysSuccess(TestEntity, [1, 3]));
+
+      expect(newState).toEqual({
+        testEntity: {
+          entities: {
+            2: { identity: 2 }
+          },
+          ids: [2],
+          isDeleting: false,
+          deletedAt: expect.toBeDate()
+        }
+      });
+    });
     // endregion
 
     // region Select (single)
@@ -1028,6 +1079,54 @@ describe('NgRX Auto-Entity: Reducer', () => {
       const newState = metaReducer(state, new DeselectAll(TestEntity));
 
       expect(newState.testEntity.currentEntitiesKeys).toBeUndefined();
+    });
+    // endregion
+
+    // region Clear
+    it('should reduce Clear and reset auto-entity managed state to default, empty state', () => {
+      const state = {
+        testEntity: {
+          entities: {
+            2: { identity: 2 },
+            1: { identity: 1 },
+            3: { identity: 3 }
+          },
+          ids: [1, 2, 3],
+          currentEntitiesKeys: [1, 2, 3]
+        }
+      };
+      const rootReducer = jest.fn();
+      const metaReducer = autoEntityMetaReducer(rootReducer);
+      const newState = metaReducer(state, new Clear(TestEntity));
+
+      expect(newState.testEntity).toEqual({
+        entities: {},
+        ids: []
+      });
+    });
+
+    it('should reduce Clear and leave custom user-defined properties alone while clearning auto-entity managed state', () => {
+      const state = {
+        testEntity: {
+          entities: {
+            2: { identity: 2 },
+            1: { identity: 1 },
+            3: { identity: 3 }
+          },
+          ids: [1, 2, 3],
+          currentEntitiesKeys: [1, 2, 3],
+          customProperty: 'hello'
+        }
+      };
+      const rootReducer = jest.fn();
+      const metaReducer = autoEntityMetaReducer(rootReducer);
+      const newState = metaReducer(state, new Clear(TestEntity));
+
+      expect(newState.testEntity).toEqual({
+        entities: {},
+        ids: [],
+        customProperty: 'hello'
+      });
     });
     // endregion
   });

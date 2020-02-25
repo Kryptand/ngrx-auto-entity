@@ -1,3 +1,55 @@
+<a name="0.4.2"></a>
+
+# [0.4.2](https://github.com/briebug/ngrx-auto-entity/compare/0.4.1...0.4.2) Beta (2020-02-13)
+
+Introduces entity data transformation feature to enable `fromServer` and `toServer` data transformations via
+the `transform` property on the `@Entity` decorator. Each transformation may optionally implement `fromServer`
+and/or `toServer`. When a transformation is implemented for a given direction, it will be applied to data
+flowing in that direction. If transformations are present, they will be applied in the order specified.
+
+Data transformations may be used to convert things such as dates from UTC strings on the server, to actual 
+`Date` objects in the client during loads, and back again during saves. Transform implementations are 
+type-free, allowing any form of data to be handled as input, and any form of data to be returned as output.
+This allows transformations to be highly composable if necessary.
+
+The `IAutoEntityService` interface has been enhanced to include, as a final parameter for modification methods,
+an additional `originalEntity` property. This is the entity before transformation, in the event that the
+original data is required by an entity service implementation.
+
+Transforms must be configured for each entity. No global transformations are supported at the current time.
+
+Resolves #59 
+
+### Features
+- **actions**:** Includes `transform` in `IEntityInfo` attached to every auto-entity action
+- **service:** Refactored to handle transformation of all data, to and from server, for all entities, if configured via `@Entity`
+- **service:** Extended `IAutoEntityService` interface to include support for `originalEntity` (pre-transformation)
+- **decorators:** Add new, optional `transform` property that accepts an array of `IEntityTransformation` implementations
+
+
+<a name="0.4.1"></a>
+
+# [0.4.1](https://github.com/briebug/ngrx-auto-entity/compare/0.4.0...0.4.1) Beta (2020-02-09)
+
+Introduces the ability to delete entities just by their key, or many entities by their keys. This allows
+the deletion of entities without actually having the entity objects on hand. 
+
+Also resolves an issue with clearing state, which would also clear custom developer-defined extra state
+included alongside auto-entity managed state. 
+
+### Features
+- **actions**:** Add `DeleteByKey`, `DeleteManyByKeys` and related result actions (#85)
+- **service:** Add support for `deleteByKey` and `deleteManyByKeys` methods in entity services (#85)
+- **reducer:** Handles new delete by keys result actions to rmeove deleted entities and update deleting flags/timestamps (#85)
+- **decorators:** Add support for new delete by keys actions in effect exclusion of `@Entity` decorator (#85)
+- **facades:** Add `deleteByKey` and `deleteManyByKeys` methods to generated facades (#85)
+- **effects:** Add operators and effects to handle delete by keys actions (#85)  
+
+### Bug Fix
+- **reducer:** No longer removes custom state when clearing auto-entity managed state with `Clear` action (#86)
+- **util:** Fix `buildState` and `buildFeatureState` and related types to support custom properties in extra state under TS 3.x (#88)
+
+
 <a name="0.4.0"></a>
 
 # [0.4.0](https://github.com/briebug/ngrx-auto-entity/compare/0.3.1...0.4.0) Beta (2020-01-13)

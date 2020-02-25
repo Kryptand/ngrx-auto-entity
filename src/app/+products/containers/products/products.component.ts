@@ -21,6 +21,18 @@ export class ProductsComponent implements OnInit {
     this.products$ = this.productFacade.all$;
   }
 
+  bulkDelete() {
+    if (this.selectedProducts.length) {
+      const ids = this.selectedProducts.map(product => product.id);
+      ids.length === 1 ? this.productFacade.deleteByKey(ids[0]) : this.productFacade.deleteManyByKeys(ids);
+      this.selectedProducts = [];
+    }
+  }
+
+  onSelect(products: Product[]) {
+    this.selectedProducts = products;
+  }
+
   onDelete(product: Product) {
     this.productFacade.selectDeleteDelay(product);
   }

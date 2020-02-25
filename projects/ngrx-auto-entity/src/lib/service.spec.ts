@@ -7,8 +7,10 @@ import { catchError } from 'rxjs/operators';
 import { IEntityInfo } from './actions';
 import { Page, Range } from './models';
 import {
+  applyTransforms,
   failResolution,
   getService,
+  getTransforms,
   IAutoEntityService,
   IEntityWithPageInfo,
   IEntityWithRangeInfo,
@@ -21,6 +23,7 @@ import {
   resolveService,
   resolveServiceDeep
 } from './service';
+import { EntityIdentity } from './util';
 
 export class TestModel {
   id: number;
@@ -149,6 +152,26 @@ export class TestModelService implements IAutoEntityService<TestModel> {
       return of(entity);
     }
   }
+
+  deleteByKey(entityInfo: IEntityInfo, entityIdentity: EntityIdentity, criteria?: any): Observable<EntityIdentity> {
+    if (entityInfo.modelName !== 'TestModel') {
+      return throwError({ message: 'Service not found' });
+    } else {
+      return of(entityIdentity);
+    }
+  }
+
+  deleteManyByKeys(
+    entityInfo: IEntityInfo,
+    entityIdentities: EntityIdentity[],
+    criteria?: any
+  ): Observable<EntityIdentity[]> {
+    if (entityInfo.modelName !== 'TestModel') {
+      return throwError({ message: 'Service not found' });
+    } else {
+      return of(entityIdentities);
+    }
+  }
 }
 
 describe('NgRX Auto-Entity: Service', () => {
@@ -208,6 +231,50 @@ describe('NgRX Auto-Entity: Service', () => {
           expect(consoleMsgs[1]).toBe("{ message: 'StaticInjector error' }");
         }
       );
+    });
+  });
+
+  describe('Functions: Transformation', () => {
+    describe('Function: getTransforms', () => {
+      it('should return default identity transformation if non defined on model', () => {
+        const transforms = getTransforms(undefined, 'fromServer');
+        expect(transforms).toEqual([expect.any(Function)]);
+      });
+
+      it('should return array of transformations defined on model for specified property', () => {
+        const fromServer1 = data => data;
+        const fromServer2 = data => ((data.prop = +data.prop), data);
+
+        const xform1 = { fromServer: fromServer1 };
+        const xform2 = { fromServer: fromServer2 };
+
+        const transforms = getTransforms([xform1, xform2], 'fromServer');
+
+        expect(transforms).toEqual([fromServer1, fromServer2]);
+      });
+    });
+
+    describe('Function: applyTransforms', () => {
+      it('should apply transformations in the order specified', () => {
+        const fromServer1 = data => ((data.date = new Date(data.date)), data);
+        const fromServer2 = data => ((data.num = +data.num), data);
+
+        const originalEntity = {
+          date: '2020-02-13T16:30:30',
+          num: '10'
+        };
+
+        const transformed = applyTransforms([fromServer1, fromServer2])(originalEntity);
+
+        expect(transformed.date).toStrictEqual(expect.any(Date));
+        expect(transformed.date.getFullYear()).toBe(new Date('2020-02-13T16:30:30').getFullYear());
+        expect(transformed.date.getMonth()).toBe(new Date('2020-02-13T16:30:30').getMonth());
+        expect(transformed.date.getDay()).toBe(new Date('2020-02-13T16:30:30').getDay());
+        expect(transformed.date.getHours()).toBe(new Date('2020-02-13T16:30:30').getHours());
+        expect(transformed.date.getMinutes()).toBe(new Date('2020-02-13T16:30:30').getMinutes());
+        expect(transformed.date.getSeconds()).toBe(new Date('2020-02-13T16:30:30').getSeconds());
+        expect(transformed.num).toBe(10);
+      });
     });
   });
 
@@ -561,6 +628,52 @@ describe('NgRX Auto-Entity: Service', () => {
         test('should throw an error when the service is not found', done => {
           entityService
             .delete(badEntityInfo, entity)
+            .pipe(
+              catchError(err => {
+                expect(err).toEqual({ info: badEntityInfo, err: { message: 'Service not found' } });
+                return of(err);
+              })
+            )
+            .subscribe(() => {
+              done();
+            });
+        });
+      });
+
+      describe('deleteByKey', () => {
+        test('should return a valid EntityIdentityRef on successful delete', done => {
+          entityService.deleteByKey(entityInfo, entity.id).subscribe(entityIdentityRef => {
+            expect(entityIdentityRef).toEqual({ info: entityInfo, entityIdentity: entity.id });
+            done();
+          });
+        });
+
+        test('should throw an error when the service is not found', done => {
+          entityService
+            .deleteByKey(badEntityInfo, entity.id)
+            .pipe(
+              catchError(err => {
+                expect(err).toEqual({ info: badEntityInfo, err: { message: 'Service not found' } });
+                return of(err);
+              })
+            )
+            .subscribe(() => {
+              done();
+            });
+        });
+      });
+
+      describe('deleteManyByKeys', () => {
+        test('should return a valid EntityIdentitiesRef on successful delete', done => {
+          entityService.deleteManyByKey(entityInfo, [entity.id]).subscribe(entityIdentitiesRef => {
+            expect(entityIdentitiesRef).toEqual({ info: entityInfo, entityIdentities: [entity.id] });
+            done();
+          });
+        });
+
+        test('should throw an error when the service is not found', done => {
+          entityService
+            .deleteManyByKey(badEntityInfo, [entity.id])
             .pipe(
               catchError(err => {
                 expect(err).toEqual({ info: badEntityInfo, err: { message: 'Service not found' } });

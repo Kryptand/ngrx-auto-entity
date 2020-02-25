@@ -11,11 +11,17 @@ export interface IEffectExcept {
   except?: (...actions: EntityActionTypes[]) => IEffectExclusions;
 }
 
+export interface IEntityTransformer {
+  fromServer?: (data: any) => any;
+  toServer?: (entity: any) => any;
+}
+
 export interface IEntityOptions {
   modelName: string;
   uriName?: string;
   pluralName?: string;
   comparer?: (a, b) => number;
+  transform?: IEntityTransformer[];
   excludeEffects?: IEffectExclusions | IEffectExcept;
 }
 
@@ -39,7 +45,9 @@ const CURD_EFFECTS_EXCLUSION = Object.freeze({
   [EntityActionTypes.Replace]: true,
   [EntityActionTypes.ReplaceMany]: true,
   [EntityActionTypes.Delete]: true,
-  [EntityActionTypes.DeleteMany]: true
+  [EntityActionTypes.DeleteMany]: true,
+  [EntityActionTypes.DeleteByKey]: true,
+  [EntityActionTypes.DeleteManyByKeys]: true
 });
 
 const LOAD_EFFECTS_EXCLUSION = Object.freeze({

@@ -4,6 +4,8 @@ import {
   Change,
   CreateManySuccess,
   CreateSuccess,
+  DeleteByKeySuccess,
+  DeleteManyByKeysSuccess,
   DeleteManySuccess,
   DeleteSuccess,
   DeselectDeleteDelay,
@@ -699,8 +701,93 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
       return next;
     }
 
+    case EntityActionTypes.DeleteByKey: {
+      const newState = {
+        ...entityState,
+        isDeleting: true
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.DeleteByKeyFailure: {
+      const newState = {
+        ...entityState,
+        isDeleting: false
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.DeleteByKeySuccess: {
+      const deleteKey = (action as DeleteByKeySuccess<any>).key;
+
+      // Better to NOT delete the entity key, but set it to undefined,
+      // to avoid re-generating the underlying runtime class (TODO: find and add link to V8 jit and runtime)
+      const newState = {
+        ...entityState,
+        entities: {
+          ...entityState.entities,
+          [deleteKey]: undefined
+        },
+        ids: entityState.ids.filter(eid => eid !== deleteKey),
+        isDeleting: false,
+        deletedAt: new Date()
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+
+    case EntityActionTypes.DeleteManyByKeys: {
+      const newState = {
+        ...entityState,
+        isDeleting: true
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.DeleteManyByKeysFailure: {
+      const newState = {
+        ...entityState,
+        isDeleting: false
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+    case EntityActionTypes.DeleteManyByKeysSuccess: {
+      const deleteKeys = (action as DeleteManyByKeysSuccess<any>).keys;
+
+      const newState = {
+        ...entityState,
+        entities: {
+          ...(entityState.entities || {}),
+          ...deleteKeys.reduce(
+            (entities, key) => ({
+              ...entities,
+              [key]: undefined
+            }),
+            {}
+          )
+        },
+        ids: [...entityState.ids.filter(sid => !deleteKeys.some(did => did === sid))],
+        isDeleting: false,
+        deletedAt: new Date()
+      };
+
+      const next = setNewState(featureName, stateName, state, newState);
+      return next;
+    }
+
     case EntityActionTypes.Clear: {
       const newState = {
+        // If the developer has included their own extra state properties with buildState(Entity, { /* custom */ })
+        // then we don't want to mess with it. We want to leave any custom developer state as-is!
+        // Spread in the current state to ensure we KEEP custom developer-defined extra state properties:
+        ...entityState,
+        // Now reset the auto-entity managed properties to their default states:
         entities: {},
         ids: [],
         currentEntityKey: undefined,

@@ -74,9 +74,15 @@ export {
   Delete,
   DeleteFailure,
   DeleteSuccess,
+  DeleteByKey,
+  DeleteByKeyFailure,
+  DeleteByKeySuccess,
   DeleteMany,
   DeleteManyFailure,
   DeleteManySuccess,
+  DeleteManyByKeys,
+  DeleteManyByKeysFailure,
+  DeleteManyByKeysSuccess,
   Select,
   SelectByKey,
   SelectMany,
@@ -103,6 +109,7 @@ export {
   IEffectExclusions,
   IEffectExcept,
   IEntityOptions,
+  IEntityTransformer,
   Entity,
   all,
   extra,
@@ -126,7 +133,9 @@ export {
   IEntityPageRef,
   IEntityError,
   IAutoEntityService,
-  IEntityRef
+  IEntityRef,
+  IEntityIdentityRef,
+  IEntityIdentitiesRef
 } from './lib/service';
 
 export {
@@ -144,7 +153,9 @@ export {
   ReplaceEffect,
   ReplaceManyEffect,
   DeleteEffect,
+  DeleteByKeyEffect,
   DeleteManyEffect,
+  DeleteManyByKeysEffect,
   EntityEffects,
   ExtraEffects
 } from './lib/effects.default';
