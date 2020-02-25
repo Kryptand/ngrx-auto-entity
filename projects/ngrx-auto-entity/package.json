@@ -1,5 +1,5 @@
 {
-  "version": "0.4.0",
+  "version": "0.4.3",
   "name": "@kryptand/ngrx-auto-entity",
   "description": "Automatic Entity State and Facades for NgRx. Simplifying reactive state!",
   "keywords": [
@@ -20,9 +20,9 @@
     "url": "https://github.com/Kryptand/ngrx-auto-entity"
   },
   "peerDependencies": {
-    "@angular/common": "8.x",
-    "@angular/core": "8.x",
-    "@ngrx/effects": "8.x",
+    "@angular/common": "9.x",
+    "@angular/core": "9.x",
+    "@ngrx/effects": "9.x",
     "@ngrx/store": "8.x",
     "rxjs": "6.x"
   }

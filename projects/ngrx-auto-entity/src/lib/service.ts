@@ -6,7 +6,6 @@ import { pascalCase } from '../util/case';
 import { IEntityInfo } from './actions';
 import { IEntityTransformer } from './decorators/entity';
 import { IPageInfo, IRangeInfo, Page, Range } from './models';
-import { IAutoEntityService } from './service';
 import { EntityIdentity } from './util';
 
 
