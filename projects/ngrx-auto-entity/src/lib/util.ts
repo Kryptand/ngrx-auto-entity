@@ -170,11 +170,15 @@ export const buildSelectorMap = <TParentState, TState extends IEntityState<TMode
     ),
     selectDelayedDeleteEntities: createSelector(
       getState,
-      (state: TState): TModel[] => state.delayedDeleteEntityKeys.map(key => state.entities[key])
+      (state: TState): TModel[] =>
+        !state || !state.delayedDeleteEntityKeys || !state.entities
+          ? []
+          : state.delayedDeleteEntityKeys.map(key => state.entities[key])
     ),
     selectDelayedDeleteEntityKeys: createSelector(
       getState,
-      (state: TState): EntityIdentity[] => state.delayedDeleteEntityKeys
+      (state: TState): EntityIdentity[] =>
+        !state || !state.delayedDeleteEntityKeys ? [] : state.delayedDeleteEntityKeys
     ),
     selectEditedEntity: createSelector(
       getState,

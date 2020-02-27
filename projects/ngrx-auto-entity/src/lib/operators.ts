@@ -316,19 +316,20 @@ export class EntityOperators {
       );
   }
   synchronizeDeleteDelay<TModel>() {
-    return (source: Observable<SynchronizeDelayDelete<TModel>>) =>{
-      return   source.pipe(
+    return (source: Observable<SynchronizeDelayDelete<TModel>>) => {
+      return source.pipe(
         mergeMap(({ info, entities }) => {
           return this.entityService.deleteMany<TModel>(info, entities).pipe(
-            map((ref: IEntityRef<TModel[]>) => new SynchronizeDelayDeleteSuccess<TModel>(ref.info.modelType,ref.entity)),
+            map(
+              (ref: IEntityRef<TModel[]>) => new SynchronizeDelayDeleteSuccess<TModel>(ref.info.modelType, ref.entity)
+            ),
             catchError((error: IEntityError<TModel>) =>
               handleError(error, new SynchronizeDelayDeleteFailure<TModel>(error.info.modelType, error.err))
             )
           );
         })
       );
-    }
-
+    };
   }
 
   deleteMany<TModel>() {

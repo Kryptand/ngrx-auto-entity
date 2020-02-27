@@ -41,11 +41,15 @@ export class EntityService implements IAutoEntityService<any> {
       .delete<any>(`${environment.API_BASE_URL}/${entityInfo.modelName.toLowerCase()}s/${entity.id}`)
       .pipe(map(() => entity));
   }
-  deleteMany(entityInfo: IEntityInfo, entities: any[], criteria?: any): Observable<any[]>{
-  console.debug(entities);
-      return forkJoin(entities.map(entity=>this.http
-    .delete<any>(`${environment.API_BASE_URL}/${entityInfo.modelName.toLowerCase()}s/${entity.id}`).pipe(map(()=>entity))));
-
+  deleteMany(entityInfo: IEntityInfo, entities: any[], criteria?: any): Observable<any[]> {
+    return forkJoin(
+      entities.map(entity =>
+        this.http
+          .delete<any>(`${environment.API_BASE_URL}/${entityInfo.modelName.toLowerCase()}s/${entity.id}`)
+          .pipe(map(() => entity))
+      )
+    );
+  }
 
   deleteByKey(entityInfo: IEntityInfo, entityKey: string | number, criteria?: any): Observable<EntityIdentity> {
     return this.http
@@ -61,6 +65,4 @@ export class EntityService implements IAutoEntityService<any> {
     const deleteRequests = entityKeys.map(key => this.deleteByKey(entityInfo, key, criteria));
     return forkJoin(deleteRequests);
   }
-}
-
 }
