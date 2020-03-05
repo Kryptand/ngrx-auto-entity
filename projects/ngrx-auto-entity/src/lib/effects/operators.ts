@@ -2,7 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map, mergeMap } from 'rxjs/operators';
 
-import { pascalCase } from '../util/case';
+import { pascalCase } from '../../util/case';
 import {
   Change,
   Changed,
@@ -64,26 +64,20 @@ import {
   SelectManyByKeys,
   SelectMore,
   SelectMoreByKeys,
+  SynchronizeDelayDelete,
+  SynchronizeDelayDeleteFailure,
+  SynchronizeDelayDeleteSuccess,
   Update,
   UpdateFailure,
   UpdateMany,
   UpdateManyFailure,
   UpdateManySuccess,
-  UpdateSuccess,
-  SynchronizeDelayDelete,
-  SynchronizeDelayDeleteSuccess,
-  SynchronizeDelayDeleteFailure
-} from './actions';
-import { shouldApplyEffect } from './decorators/entity';
-import {
-  IEntityError,
-  IEntityIdentitiesRef,
-  IEntityIdentityRef,
-  IEntityPageRef,
-  IEntityRangeRef,
-  IEntityRef,
-  NgrxAutoEntityService
-} from './service';
+  UpdateSuccess
+} from '../actions/actions';
+import { shouldApplyEffect } from '../decorators/entity-operators';
+import { IEntityIdentitiesRef, IEntityIdentityRef, IEntityPageRef, IEntityRangeRef, IEntityRef } from '../service/refs';
+import { NgrxAutoEntityService } from '../service/service';
+import { IEntityError } from '../service/wrapper-models';
 
 export const handleError = <TModel, TErrorAction>(
   error: IEntityError<TModel>,
@@ -132,6 +126,22 @@ export class EntityOperators {
         })
       );
   }
+  synchronizeDeleteDelay<TModel>() {
+    return (source: Observable<SynchronizeDelayDelete<TModel>>) => {
+      return source.pipe(
+        mergeMap(({ info, entities }) => {
+          return this.entityService.deleteMany<TModel>(info, entities).pipe(
+            map(
+              (ref: IEntityRef<TModel[]>) => new SynchronizeDelayDeleteSuccess<TModel>(ref.info.modelType, ref.entity)
+            ),
+            catchError((error: IEntityError<TModel>) =>
+              handleError(error, new SynchronizeDelayDeleteFailure<TModel>(error.info.modelType, error.err))
+            )
+          );
+        })
+      );
+    };
+  }
 
   loadAll<TModel>() {
     return (source: Observable<LoadAll<TModel>>) =>
@@ -166,6 +176,7 @@ export class EntityOperators {
         })
       );
   }
+
   loadPage<TModel>() {
     return (source: Observable<LoadPage<TModel>>) =>
       source.pipe(
@@ -314,22 +325,6 @@ export class EntityOperators {
           );
         })
       );
-  }
-  synchronizeDeleteDelay<TModel>() {
-    return (source: Observable<SynchronizeDelayDelete<TModel>>) => {
-      return source.pipe(
-        mergeMap(({ info, entities }) => {
-          return this.entityService.deleteMany<TModel>(info, entities).pipe(
-            map(
-              (ref: IEntityRef<TModel[]>) => new SynchronizeDelayDeleteSuccess<TModel>(ref.info.modelType, ref.entity)
-            ),
-            catchError((error: IEntityError<TModel>) =>
-              handleError(error, new SynchronizeDelayDeleteFailure<TModel>(error.info.modelType, error.err))
-            )
-          );
-        })
-      );
-    };
   }
 
   deleteMany<TModel>() {

@@ -1,5 +1,7 @@
 import { ActionReducer } from '@ngrx/store';
-import { camelCase } from '../util/case';
+
+import { camelCase } from '../../util/case';
+import { EntityActionTypes } from '../actions/action-types';
 import {
   Change,
   CreateManySuccess,
@@ -13,9 +15,6 @@ import {
   DeselectMany,
   DeselectManyByKeys,
   Edit,
-  EntityActions,
-  EntityActionTypes,
-  IEntityAction,
   LoadPageSuccess,
   LoadRangeSuccess,
   LoadSuccess,
@@ -31,9 +30,12 @@ import {
   SelectMoreByKeys,
   UpdateManySuccess,
   UpdateSuccess
-} from './actions';
-import { getKey } from './decorators/key';
-import { FEATURE_AFFINITY } from './util';
+} from '../actions/actions';
+import { IEntityAction } from '../actions/entity-action';
+import { EntityActions } from '../actions/entity-actions-union';
+import { getKey } from '../decorators/key';
+import { EntityIdentity } from '../util/entity-state';
+import { FEATURE_AFFINITY } from '../util/util-tokens';
 
 export function stateNameFromAction(action: IEntityAction): string {
   return camelCase(action.info.modelName);
@@ -49,6 +51,38 @@ export function setNewState(featureName: string, stateName: string, state, newSt
     : { ...state, [stateName]: newState };
   return nextState;
 }
+
+export const cloneEntities = (original: any | null) => (!!original ? { ...original } : {});
+
+export const cloneIds = (ids: EntityIdentity[] | null) => (!!ids ? [...ids] : []);
+
+export const mergeSingle = (currentEntities, entityKey, newEntity) => (
+  (currentEntities[entityKey] = newEntity), currentEntities
+);
+export const mergeMany = (currentEntities, newEntities, action) =>
+  newEntities.reduce((entities, entity) => ((entities[getKey(action, entity)] = entity), entities), currentEntities);
+
+export const deleteSingle = (currentEntities, entityKey) => (delete currentEntities[entityKey], currentEntities);
+export const deleteMany = (currentEntities, entityKeys) => (
+  entityKeys.forEach(entityKey => delete currentEntities[entityKey]), currentEntities
+);
+
+export const pushSingle = (currentIds, entityKey) => (currentIds.push(entityKey), currentIds);
+export const pushMany = (currentIds, newEntities, action) => (
+  currentIds.push.apply(currentIds, newEntities.map(entity => getKey(action, entity))), currentIds
+);
+
+export const noop = () => {};
+export const has = (array, value) => array.indexOf(value) > -1;
+export const pushIfMissing = (currentEntities, currentIds, entityKey) =>
+  entityKey in currentEntities ? noop() : currentIds.push(entityKey);
+
+export const pushUnique = (currentEntities, currentIds, entityKey) => (
+  pushIfMissing(currentEntities, currentIds, entityKey), currentIds
+);
+export const pushManyUnique = (currentEntities, currentIds, entityKeys) => (
+  entityKeys.forEach(entityKey => pushIfMissing(currentEntities, currentIds, entityKey)), currentIds
+);
 
 export function autoEntityReducer(reducer: ActionReducer<any>, state, action: EntityActions<any>) {
   let stateName: string;
@@ -83,15 +117,15 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.CreateSuccess: {
       const createEntity = (action as CreateSuccess<any>).entity;
       const createKey = getKey(action, createEntity);
+      const entities = cloneEntities(entityState.entities);
+      const ids = cloneIds(entityState.ids);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          [createKey]: createEntity
-        },
-        ids: [...(entityState.ids || []), createKey],
+        entities: mergeSingle(entities, createKey, createEntity),
+        ids: pushSingle(ids, createKey),
         isSaving: false,
-        createdAt: new Date()
+        createdAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -118,21 +152,15 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.CreateManySuccess: {
       const createdEntities = (action as CreateManySuccess<any>).entities;
+      const entities = cloneEntities(entityState.entities);
+      const ids = cloneIds(entityState.ids);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...createdEntities.reduce(
-            (entities, entity) => ({
-              ...entities,
-              [getKey(action, entity)]: entity
-            }),
-            {}
-          )
-        },
-        ids: [...(entityState.ids || []), ...createdEntities.map(entity => getKey(action, entity))],
+        entities: mergeMany(entities, createdEntities, action),
+        ids: pushMany(ids, createdEntities, action),
         isSaving: false,
-        createdAt: new Date()
+        createdAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -160,15 +188,15 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.LoadSuccess: {
       const loadEntity = (action as LoadSuccess<any>).entity;
       const loadKey = getKey(action, loadEntity);
+      const entities = cloneEntities(entityState.entities);
+      const ids = cloneIds(entityState.ids);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          [loadKey]: loadEntity
-        },
-        ids: [...(entityState.ids || []).filter(k => k !== loadKey), loadKey],
+        ids: pushUnique(entities, ids, loadKey), // ALERT: IDS FIRST!!!
+        entities: mergeSingle(entities, loadKey, loadEntity), // ALERT: Then entities!
         isLoading: false,
-        loadedAt: new Date()
+        loadedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -196,24 +224,15 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.LoadManySuccess: {
       const loadManyEntities = action['entities'];
       const loadedIds = loadManyEntities.map(entity => getKey(action, entity));
+      const entities = cloneEntities(entityState.entities);
+      const ids = cloneIds(entityState.ids);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...loadManyEntities.reduce(
-            (entities, entity) => ({
-              ...entities,
-              [getKey(action, entity)]: entity
-            }),
-            {}
-          )
-        },
-        ids: [
-          ...(entityState.ids || []),
-          ...loadedIds.filter(lid => !(entityState.ids || []).some(sid => lid === sid))
-        ],
+        ids: pushManyUnique(entities, ids, loadedIds), // ALERT: IDS FIRST!!
+        entities: mergeMany(entities, loadManyEntities, action), // ALERT: Then entities!
         isLoading: false,
-        loadedAt: new Date()
+        loadedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -240,18 +259,13 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.LoadAllSuccess: {
       const loadAllEntities = action['entities'];
+
       const newState = {
         ...entityState,
-        entities: loadAllEntities.reduce(
-          (entities, entity) => ({
-            ...entities,
-            [getKey(action, entity)]: entity
-          }),
-          {}
-        ),
+        entities: mergeMany({}, loadAllEntities, action),
         ids: loadAllEntities.map(entity => getKey(action, entity)),
         isLoading: false,
-        loadedAt: new Date(),
+        loadedAt: Date.now(),
         currentPage: 1,
         totalPageableCount: loadAllEntities.length
       };
@@ -280,20 +294,15 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.LoadPageSuccess: {
       const loadPageEntities = action['entities'];
+
       const newState = {
         ...entityState,
-        entities: loadPageEntities.reduce(
-          (entities, entity) => ({
-            ...entities,
-            [getKey(action, entity)]: entity
-          }),
-          {}
-        ),
+        entities: mergeMany({}, loadPageEntities, action),
         ids: loadPageEntities.map(entity => getKey(action, entity)),
         currentPage: (action as LoadPageSuccess<any>).pageInfo.page,
         totalPageableCount: (action as LoadPageSuccess<any>).pageInfo.totalCount,
         isLoading: false,
-        loadedAt: new Date()
+        loadedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -320,23 +329,17 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.LoadRangeSuccess: {
       const loadRangeEntities = action['entities'];
+      const entities = cloneEntities(entityState.entities);
+      const ids = cloneIds(entityState.ids);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...loadRangeEntities.reduce(
-            (entities, entity) => ({
-              ...entities,
-              [getKey(action, entity)]: entity
-            }),
-            {}
-          )
-        },
-        ids: [...(entityState.ids || []), ...loadRangeEntities.map(entity => getKey(action, entity))],
+        entities: mergeMany(entities, loadRangeEntities, action),
+        ids: pushMany(ids, loadRangeEntities, action),
         currentRange: (action as LoadRangeSuccess<any>).rangeInfo.range,
         totalPageableCount: (action as LoadRangeSuccess<any>).rangeInfo.totalCount,
         isLoading: false,
-        loadedAt: new Date()
+        loadedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -364,14 +367,13 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.UpdateSuccess: {
       const updateEntity = (action as UpdateSuccess<any>).entity;
       const updateKey = getKey(action, updateEntity);
+      const entities = cloneEntities(entityState.entities);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...entityState.entities,
-          [updateKey]: updateEntity
-        },
+        entities: mergeSingle(entities, updateKey, updateEntity),
         isSaving: false,
-        savedAt: new Date()
+        savedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -524,20 +526,13 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.UpdateManySuccess: {
       const updateManyEntities = (action as UpdateManySuccess<any>).entities;
+      const entities = cloneEntities(entityState.entities);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...updateManyEntities.reduce(
-            (entities, entity) => ({
-              ...entities,
-              [getKey(action, entity)]: entity
-            }),
-            {}
-          )
-        },
+        entities: mergeMany(entities, updateManyEntities, action),
         isSaving: false,
-        savedAt: new Date()
+        savedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -565,15 +560,13 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.ReplaceSuccess: {
       const replaceEntity = (action as ReplaceSuccess<any>).entity;
       const replaceKey = getKey(action, replaceEntity);
+      const entities = cloneEntities(entityState.entities);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...entityState.entities,
-          [replaceKey]: replaceEntity
-        },
-        ids: [...entityState.ids],
+        entities: mergeSingle(entities, replaceKey, replaceEntity),
         isSaving: false,
-        savedAt: new Date()
+        savedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -600,20 +593,13 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.ReplaceManySuccess: {
       const replaceManyEntities = (action as ReplaceManySuccess<any>).entities;
+      const entities = cloneEntities(entityState.entities);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...replaceManyEntities.reduce(
-            (entities, entity) => ({
-              ...entities,
-              [getKey(action, entity)]: entity
-            }),
-            {}
-          )
-        },
+        entities: mergeMany(entities, replaceManyEntities, action),
         isSaving: false,
-        savedAt: new Date()
+        savedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -641,18 +627,17 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.DeleteSuccess: {
       const deleteEntity = (action as DeleteSuccess<any>).entity;
       const deleteKey = getKey(action, deleteEntity);
+      const entities = cloneEntities(entityState.entities);
+      const ids = entityState.ids.filter(eid => eid !== deleteKey);
 
       // Better to NOT delete the entity key, but set it to undefined,
       // to avoid re-generating the underlying runtime class (TODO: find and add link to V8 jit and runtime)
       const newState = {
         ...entityState,
-        entities: {
-          ...entityState.entities,
-          [deleteKey]: undefined
-        },
-        ids: entityState.ids.filter(eid => eid !== deleteKey),
+        entities: deleteSingle(entities || {}, deleteKey),
+        ids,
         isDeleting: false,
-        deletedAt: new Date()
+        deletedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -680,21 +665,16 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     case EntityActionTypes.DeleteManySuccess: {
       const deleteManyEntities = (action as DeleteManySuccess<any>).entities;
       const deletedIds = deleteManyEntities.map(entity => getKey(action, entity));
+      const clonedEntities = cloneEntities(entityState.entities);
+      const entities = deleteMany(clonedEntities, deletedIds);
+      const ids = entityState.ids.filter(eid => eid in entities);
+
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...deleteManyEntities.reduce(
-            (entities, entity) => ({
-              ...entities,
-              [getKey(action, entity)]: undefined
-            }),
-            {}
-          )
-        },
-        ids: [...entityState.ids.filter(sid => !deletedIds.some(did => did === sid))],
+        entities,
+        ids,
         isDeleting: false,
-        deletedAt: new Date()
+        deletedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -721,18 +701,18 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.DeleteByKeySuccess: {
       const deleteKey = (action as DeleteByKeySuccess<any>).key;
+      const clonedEntities = cloneEntities(entityState.entities);
+      const entities = deleteSingle(clonedEntities || {}, deleteKey);
+      const ids = entityState.ids.filter(eid => eid in entities);
 
       // Better to NOT delete the entity key, but set it to undefined,
       // to avoid re-generating the underlying runtime class (TODO: find and add link to V8 jit and runtime)
       const newState = {
         ...entityState,
-        entities: {
-          ...entityState.entities,
-          [deleteKey]: undefined
-        },
-        ids: entityState.ids.filter(eid => eid !== deleteKey),
+        entities,
+        ids,
         isDeleting: false,
-        deletedAt: new Date()
+        deletedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -759,22 +739,16 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
     }
     case EntityActionTypes.DeleteManyByKeysSuccess: {
       const deleteKeys = (action as DeleteManyByKeysSuccess<any>).keys;
+      const clonedEntities = cloneEntities(entityState.entities);
+      const entities = deleteMany(clonedEntities, deleteKeys);
+      const ids = entityState.ids.filter(eid => eid in entities);
 
       const newState = {
         ...entityState,
-        entities: {
-          ...(entityState.entities || {}),
-          ...deleteKeys.reduce(
-            (entities, key) => ({
-              ...entities,
-              [key]: undefined
-            }),
-            {}
-          )
-        },
-        ids: [...entityState.ids.filter(sid => !deleteKeys.some(did => did === sid))],
+        entities,
+        ids,
         isDeleting: false,
-        deletedAt: new Date()
+        deletedAt: Date.now()
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -846,7 +820,7 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
       const selectManyKeys = selectingEntities.map(entity => getKey(action, entity));
       const newState = {
         ...entityState,
-        currentEntitiesKeys: [...selectManyKeys]
+        currentEntitiesKeys: selectManyKeys
       };
 
       const next = setNewState(featureName, stateName, state, newState);
@@ -871,7 +845,7 @@ export function autoEntityReducer(reducer: ActionReducer<any>, state, action: En
       const selectManyByKeysGuaranteedKeys = Array.isArray(selectManyByKeysKeys) ? selectManyByKeysKeys : [];
       const newState = {
         ...entityState,
-        currentEntitiesKeys: [...selectManyByKeysGuaranteedKeys]
+        currentEntitiesKeys: selectManyByKeysGuaranteedKeys
       };
 
       const next = setNewState(featureName, stateName, state, newState);
