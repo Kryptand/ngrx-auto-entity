@@ -57,7 +57,7 @@ export const cloneEntities = (original: any | null) => (!!original ? { ...origin
 export const cloneIds = (ids: EntityIdentity[] | null) => (!!ids ? [...ids] : []);
 
 export const mergeSingle = (currentEntities, entityKey, newEntity) => (
-  (currentEntities[entityKey] = newEntity), currentEntities
+  (currentEntities[entityKey] = { ...currentEntities[entityKey], ...newEntity }), currentEntities
 );
 export const mergeMany = (currentEntities, newEntities, action) =>
   newEntities.reduce((entities, entity) => ((entities[getKey(action, entity)] = entity), entities), currentEntities);
