@@ -2,7 +2,8 @@ import { TestBed } from '@angular/core/testing';
 import { createFeatureSelector, Store } from '@ngrx/store';
 import { provideMockStore } from '@ngrx/store/testing';
 
-import { Key } from '../decorators/key';
+import { Entity } from '../decorators/entity-decorator';
+import { Key } from '../decorators/key-decorator';
 import { IEntityState } from './entity-state';
 import { buildFacade } from './facade-builder';
 import { ISelectorMap } from './selector-map';
@@ -10,6 +11,7 @@ import { buildSelectorMap } from './selector-map-builder';
 import { buildFeatureState, buildState } from './state-builder';
 import { FEATURE_AFFINITY } from './util-tokens';
 
+@Entity({ modelName: 'Test' })
 class Test {
   @Key id: number;
 }
@@ -27,6 +29,7 @@ interface ITestFeatureState {
 const testSelectorMap: ISelectorMap<ITestState, Test> = {
   selectAll: expect.any(Function),
   selectAllSorted: expect.any(Function),
+  selectCustomSorted: expect.any(Function),
   selectEntities: expect.any(Function),
   selectIds: expect.any(Function),
   selectTotal: expect.any(Function),
@@ -57,6 +60,12 @@ describe('Utilities', () => {
             test: {
               entities: {},
               ids: []
+            },
+            feature: {
+              test: {
+                entities: {},
+                ids: []
+              }
             }
           }
         })

@@ -3,57 +3,50 @@ import { provideMockActions } from '@ngrx/effects/testing';
 import { hot } from 'jasmine-marbles';
 import { Observable } from 'rxjs';
 
-import { Entity } from '../decorators/entity';
-import { Key } from '../decorators/key';
+import { Entity } from '../decorators/entity-decorator';
+import { Key } from '../decorators/key-decorator';
+import { IEntityError } from '../service/wrapper-models';
 import { fromEntityActions, ofEntityAction, ofEntityType } from './action-operators';
 import { EntityActionTypes } from './action-types';
+import { Clear } from './actions';
 import {
-  Clear,
   Create,
   CreateFailure,
   CreateMany,
   CreateManyFailure,
   CreateManySuccess,
-  CreateSuccess,
+  CreateSuccess
+} from './create-actions';
+import {
   Deselect,
   DeselectAll,
   Deselected,
   DeselectedMany,
   DeselectMany,
-  DeselectManyByKeys,
-  Load,
-  LoadAll,
-  LoadAllFailure,
-  LoadAllSuccess,
-  LoadFailure,
-  LoadMany,
-  LoadManyFailure,
-  LoadManySuccess,
-  LoadPage,
-  LoadPageSuccess,
-  LoadRange,
-  LoadRangeFailure,
-  LoadRangeSuccess,
-  LoadSuccess,
+  DeselectManyByKeys
+} from './deselection-actions';
+import { Load, LoadFailure, LoadSuccess } from './load-actions';
+import { LoadAll, LoadAllFailure, LoadAllSuccess } from './load-all-actions';
+import { LoadMany, LoadManyFailure, LoadManySuccess } from './load-many-actions';
+import { LoadPage, LoadPageSuccess } from './load-page-actions';
+import { LoadRange, LoadRangeFailure, LoadRangeSuccess } from './load-range-actions';
+import {
   Replace,
   ReplaceFailure,
   ReplaceMany,
   ReplaceManyFailure,
   ReplaceManySuccess,
-  ReplaceSuccess,
-  Select,
-  SelectByKey,
-  SelectMany,
-  SelectManyByKeys,
-  SelectMore,
-  SelectMoreByKeys,
+  ReplaceSuccess
+} from './replace-actions';
+import { Select, SelectByKey, SelectMany, SelectManyByKeys, SelectMore, SelectMoreByKeys } from './selection-actions';
+import {
   Update,
   UpdateFailure,
   UpdateMany,
   UpdateManyFailure,
   UpdateManySuccess,
   UpdateSuccess
-} from './actions';
+} from './update-actions';
 
 const xform = {
   fromServer: data => data,
@@ -102,14 +95,17 @@ const einstein: TestEntity = {
 const developers: TestEntity[] = [brian, jon];
 const scientists: TestEntity[] = [fyneman, einstein];
 
-const testError = {
-  status: 500,
-  error: {
-    message: 'Test error'
-  }
+const testError: IEntityError = {
+  info: {
+    modelName: '',
+    modelType: TestEntity
+  },
+  message: 'Test error'
 };
 
 const criteria = { criteria: 'test' };
+const page = { page: 2, size: 10 };
+const range = { start: 10, end: 20 };
 
 const regex = {
   v4: /^(?:[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[a-f0-9]{4}-[a-f0-9]{12})|(?:0{8}-0{4}-0{4}-0{4}-0{12})$/u,
@@ -169,16 +165,30 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.keys).toEqual(1);
         expect(action.criteria).toEqual(criteria);
       });
+
+      it('should construct EntityAction with optional arguments', () => {
+        const action = new Load(TestEntity);
+
+        expect(action.type).toEqual('[TestEntity] (Generic) Load');
+        expect(action.actionType).toEqual(EntityActionTypes.Load);
+        expect(action.info.modelType).toEqual(TestEntity);
+        expect(action.info.modelName).toEqual('TestEntity');
+
+        expect(action.keys).toEqual(undefined);
+      });
     });
 
     describe('LoadSuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadSuccess(TestEntity, jon);
+        const keys = [1, 2];
+        const action = new LoadSuccess(TestEntity, jon, keys, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load: Success');
         expect(action.actionType).toEqual(EntityActionTypes.LoadSuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.keys).toEqual(keys);
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entity).toEqual(jon);
       });
@@ -186,7 +196,8 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadFailure(TestEntity, testError);
+        const keys = [1, 2];
+        const action = new LoadFailure(TestEntity, testError, keys, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.LoadFailure);
@@ -194,6 +205,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.keys).toEqual(keys);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -214,12 +227,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadManySuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadManySuccess(TestEntity, [jon]);
+        const action = new LoadManySuccess(TestEntity, [jon], criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load Many: Success');
         expect(action.actionType).toEqual(EntityActionTypes.LoadManySuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entities).toEqual([jon]);
       });
@@ -227,7 +241,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadManyFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadManyFailure(TestEntity, testError);
+        const action = new LoadManyFailure(TestEntity, testError, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load Many: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.LoadManyFailure);
@@ -235,6 +249,7 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -255,12 +270,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadAllSuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadAllSuccess(TestEntity, [jon]);
+        const action = new LoadAllSuccess(TestEntity, [jon], criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load All: Success');
         expect(action.actionType).toEqual(EntityActionTypes.LoadAllSuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entities).toEqual([jon]);
       });
@@ -268,7 +284,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadAllFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadAllFailure(TestEntity, testError);
+        const action = new LoadAllFailure(TestEntity, testError, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load All: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.LoadAllFailure);
@@ -276,6 +292,7 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -308,10 +325,15 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadPageSuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadPageSuccess(TestEntity, developers, {
-          page: { page: 1, size: 2 },
-          totalCount: 10
-        });
+        const action = new LoadPageSuccess(
+          TestEntity,
+          developers,
+          {
+            page: { page: 1, size: 2 },
+            totalCount: 10
+          },
+          criteria
+        );
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load Page: Success');
         expect(action.actionType).toEqual(EntityActionTypes.LoadPageSuccess);
@@ -326,12 +348,13 @@ describe('NgRX Auto-Entity: Actions', () => {
           },
           totalCount: 10
         });
+        expect(action.criteria).toEqual(criteria);
       });
     });
 
     describe('LoadPageFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadAllFailure(TestEntity, testError);
+        const action = new LoadAllFailure(TestEntity, testError, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load All: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.LoadAllFailure);
@@ -339,6 +362,7 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -417,13 +441,18 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('LoadRangeSuccess', () => {
       it('should construct EntityAction with proper details for start/end range', () => {
-        const action = new LoadRangeSuccess(TestEntity, developers, {
-          range: {
-            start: 1,
-            end: 10
+        const action = new LoadRangeSuccess(
+          TestEntity,
+          developers,
+          {
+            range: {
+              start: 1,
+              end: 10
+            },
+            totalCount: 2
           },
-          totalCount: 2
-        });
+          criteria
+        );
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load Range: Success');
         expect(action.actionType).toEqual(EntityActionTypes.LoadRangeSuccess);
@@ -438,12 +467,13 @@ describe('NgRX Auto-Entity: Actions', () => {
           },
           totalCount: 2
         });
+        expect(action.criteria).toEqual(criteria);
       });
     });
 
     describe('LoadRangeFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new LoadRangeFailure(TestEntity, testError);
+        const action = new LoadRangeFailure(TestEntity, testError, range, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Load Range: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.LoadRangeFailure);
@@ -451,6 +481,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.range).toEqual(range);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -483,12 +515,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('CreateSuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new CreateSuccess(TestEntity, fyneman);
+        const action = new CreateSuccess(TestEntity, fyneman, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Create: Success');
         expect(action.actionType).toEqual(EntityActionTypes.CreateSuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entity).toEqual(fyneman);
       });
@@ -496,7 +529,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('CreateFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new CreateFailure(TestEntity, testError);
+        const action = new CreateFailure(TestEntity, testError, fyneman, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Create: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.CreateFailure);
@@ -504,6 +537,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.entity).toEqual(fyneman);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -536,12 +571,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('CreateManySuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new CreateManySuccess(TestEntity, scientists);
+        const action = new CreateManySuccess(TestEntity, scientists, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Create Many: Success');
         expect(action.actionType).toEqual(EntityActionTypes.CreateManySuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entities).toEqual(scientists);
       });
@@ -549,7 +585,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('CreateManyFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new CreateManyFailure(TestEntity, testError);
+        const action = new CreateManyFailure(TestEntity, testError, scientists, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Create Many: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.CreateManyFailure);
@@ -557,6 +593,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.entities).toEqual(scientists);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -589,12 +627,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('UpdateSuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new UpdateSuccess(TestEntity, fyneman);
+        const action = new UpdateSuccess(TestEntity, fyneman, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Update: Success');
         expect(action.actionType).toEqual(EntityActionTypes.UpdateSuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entity).toEqual(fyneman);
       });
@@ -602,7 +641,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('UpdateFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new UpdateFailure(TestEntity, testError);
+        const action = new UpdateFailure(TestEntity, testError, fyneman, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Update: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.UpdateFailure);
@@ -610,6 +649,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.entity).toEqual(fyneman);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -642,12 +683,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('UpdateManySuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new UpdateManySuccess(TestEntity, scientists);
+        const action = new UpdateManySuccess(TestEntity, scientists, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Update Many: Success');
         expect(action.actionType).toEqual(EntityActionTypes.UpdateManySuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entities).toEqual(scientists);
       });
@@ -655,7 +697,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('UpdateManyFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new UpdateManyFailure(TestEntity, testError);
+        const action = new UpdateManyFailure(TestEntity, testError, scientists, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Update Many: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.UpdateManyFailure);
@@ -663,6 +705,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.entities).toEqual(scientists);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -695,12 +739,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('ReplaceSuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new ReplaceSuccess(TestEntity, fyneman);
+        const action = new ReplaceSuccess(TestEntity, fyneman, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Replace: Success');
         expect(action.actionType).toEqual(EntityActionTypes.ReplaceSuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entity).toEqual(fyneman);
       });
@@ -708,7 +753,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('ReplaceFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new ReplaceFailure(TestEntity, testError);
+        const action = new ReplaceFailure(TestEntity, testError, fyneman, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Replace: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.ReplaceFailure);
@@ -716,6 +761,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.entity).toEqual(fyneman);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });
@@ -748,12 +795,13 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('ReplaceManySuccess', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new ReplaceManySuccess(TestEntity, scientists);
+        const action = new ReplaceManySuccess(TestEntity, scientists, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Replace Many: Success');
         expect(action.actionType).toEqual(EntityActionTypes.ReplaceManySuccess);
         expect(action.info.modelType).toEqual(TestEntity);
         expect(action.info.modelName).toEqual('TestEntity');
+        expect(action.criteria).toEqual(criteria);
 
         expect(action.entities).toEqual(scientists);
       });
@@ -761,7 +809,7 @@ describe('NgRX Auto-Entity: Actions', () => {
 
     describe('ReplaceManyFailure', () => {
       it('should construct EntityAction with proper details', () => {
-        const action = new ReplaceManyFailure(TestEntity, testError);
+        const action = new ReplaceManyFailure(TestEntity, testError, scientists, criteria);
 
         expect(action.type).toEqual('[TestEntity] (Generic) Replace Many: Failure');
         expect(action.actionType).toEqual(EntityActionTypes.ReplaceManyFailure);
@@ -769,6 +817,8 @@ describe('NgRX Auto-Entity: Actions', () => {
         expect(action.info.modelName).toEqual('TestEntity');
 
         expect(action.error).toEqual(testError);
+        expect(action.entities).toEqual(scientists);
+        expect(action.criteria).toEqual(criteria);
       });
     });
   });

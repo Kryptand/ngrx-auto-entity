@@ -1,5 +1,8 @@
-<!--The content below is only a placeholder and can be replaced.-->
+
 <ul>
-  <li *ngFor="let account of accounts.sorted$ | async">{{account | json}}</li>
+  <li *ngFor="let customer of customers.all$ | async">{{customer.name}}</li>
 </ul>
+
+<button (click)="customers.editByKey(1)">Edit</button>
+<button (click)="customers.endEdit()">End Edit</button>
 

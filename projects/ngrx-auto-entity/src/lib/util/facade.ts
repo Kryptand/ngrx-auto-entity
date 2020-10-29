@@ -1,7 +1,8 @@
 import { Observable } from 'rxjs';
+import { EntityIdentity } from '../types/entity-identity';
 
 import { Page, Range } from '../models';
-import { EntityIdentity, IEntityDictionary } from './entity-state';
+import { IEntityDictionary } from './entity-state';
 
 /**
  * The definition of an Auto-Entity facade class
@@ -30,74 +31,60 @@ export interface IEntityFacade<TModel> {
   deletedAt$: Observable<Date>;
   delayedDelete$: Observable<TModel[]>;
   delayedDeleteKeys$: Observable<EntityIdentity[]>;
+  customSorted$(name: string): Observable<TModel[]>;
 
-  select(entity: TModel): void;
+  select(entity: TModel, correlationId?: string): string;
+  selectByKey(key: EntityIdentity, correlationId?: string): string;
+  selectMany(entities: TModel[], correlationId?: string): string;
+  selectMore(entities: TModel[], correlationId?: string): string;
+  selectManyByKeys(keys: EntityIdentity[], correlationId?: string): string;
+  selectMoreByKeys(keys: EntityIdentity[], correlationId?: string): string;
 
-  selectByKey(key: EntityIdentity): void;
+  deselect(correlationId?: string): string;
+  deselectMany(entities: TModel[], correlationId?: string): string;
+  deselectManyByKeys(keys: EntityIdentity[], correlationId?: string): string;
+  deselectAll(correlationId?: string): string;
 
-  selectMany(entities: TModel[]): void;
+  editNew(entity?: Partial<TModel>, correlationId?: string): string;
+  edit(entity: Partial<TModel>, correlationId?: string): string;
+  editByKey(key: EntityIdentity, correlationId?: string): string;
+  change(entity: Partial<TModel>, correlationId?: string): string;
+  endEdit(correlationId?: string): string;
 
-  selectMore(entities: TModel[]): void;
+  load(keys?: any, criteria?: any, correlationId?: string): string;
+  loadIfNecessary(keys?: any, criteria?: any, maxAge?: number, correlationId?: string): string;
+  loadMany(criteria?: any, correlationId?: string): string;
+  loadManyIfNecessary(criteria?: any, maxAge?: number, correlationId?: string): string;
+  loadAll(criteria?: any, correlationId?: string): string;
+  loadAllIfNecessary(criteria?: any, maxAge?: number, correlationId?: string): string;
+  loadPage(page: Page, criteria?: any, correlationId?: string): string;
+  loadPageIfNecessary(page: Page, criteria?: any, maxAge?: number, correlationId?: string): string;
+  loadRange(range: Range, criteria?: any, correlationId?: string): string;
+  loadRangeIfNecessary(range: Range, criteria?: any, maxAge?: number, correlationId?: string): string;
 
-  selectManyByKeys(keys: EntityIdentity[]): void;
+  create(entity: TModel, criteria?: any, correlationId?: string): string;
+  createMany(entities: TModel[], criteria?: any, correlationId?: string): string;
 
-  selectMoreByKeys(keys: EntityIdentity[]): void;
+  update(entity: TModel, criteria?: any, correlationId?: string): string;
+  updateMany(entities: TModel[], criteria?: any, correlationId?: string): string;
 
-  deselect(): void;
+  upsert(entity: TModel, criteria?: any, correlationId?: string): string;
+  upsertMany(entities: TModel[], criteria?: any, correlationId?: string): string;
 
-  deselectMany(entities: TModel[]): void;
+  replace(entity: TModel, criteria?: any, correlationId?: string): string;
+  replaceMany(entities: TModel[], criteria?: any, correlationId?: string): string;
 
-  deselectManyByKeys(keys: EntityIdentity[]): void;
+  delete(entity: TModel, criteria?: any, correlationId?: string): string;
+  deleteMany(entities: TModel[], criteria?: any, correlationId?: string): string;
+  deleteByKey(key: EntityIdentity, criteria?: any, correlationId?: string): string;
+  deleteManyByKeys(keys: EntityIdentity[], criteria?: any, correlationId?: string): string;
 
-  deselectAll(): void;
+  clear(correlationId?: string): string;
 
-  edit(entity: Partial<TModel>): void;
-
-  change(entity: Partial<TModel>): void;
-
-  endEdit(): void;
-
-  load(keys: any, criteria?: any): void;
-
-  loadMany(criteria: any): void;
-
-  loadAll(criteria?: any): void;
-
-  loadPage(page: Page, criteria?: any): void;
-
-  loadRange(range: Range, criteria?: any): void;
-
-  create(entity: TModel, criteria?: any): void;
-
-  createMany(entities: TModel[], criteria?: any): void;
-
-  update(entity: TModel, criteria?: any): void;
-
-  updateMany(entities: TModel[], criteria?: any): void;
-
-  replace(entity: TModel, criteria?: any): void;
-
-  replaceMany(entities: TModel[], criteria?: any): void;
-
-  delete(entity: TModel, criteria?: any): void;
-
-  deleteMany(entities: TModel[], criteria?: any): void;
-
-  deleteByKey(key: EntityIdentity, criteria?: any): void;
-
-  deleteManyByKeys(keys: EntityIdentity[], criteria?: any): void;
-
-  clear(): void;
-
-  selectDeleteDelay(entity: TModel): void;
-
-  selectDeleteDelayByKey(key: EntityIdentity): void;
-
-  deselectDeleteDelay(entity: TModel): void;
-
-  deselectDeleteDelayByKey(key: EntityIdentity): void;
-
-  synchronizeDelayDelete(): void;
-
-  deselectAllDeleteDelay(): void;
+  selectDeleteDelay(entity: TModel, correlationId?: string): void;
+  selectDeleteDelayByKey(key: EntityIdentity, correlationId?: string): void;
+  deselectDeleteDelay(entity: TModel, correlationId?: string): void;
+  deselectDeleteDelayByKey(key: EntityIdentity, correlationId?: string): void;
+  synchronizeDelayDelete( correlationId?: string): void;
+  deselectAllDeleteDelay( correlationId?: string): void;
 }

@@ -1,8 +1,8 @@
 import { Observable } from 'rxjs';
+import { EntityIdentity } from '../types/entity-identity';
 
 import { IEntityInfo } from '../actions/entity-info';
 import { Page, Range } from '../models';
-import { EntityIdentity } from '../util/entity-state';
 import { IEntityWithPageInfo, IEntityWithRangeInfo } from './wrapper-models';
 
 // prettier-ignore
@@ -24,6 +24,10 @@ export interface IAutoEntityService<TModel> {
   update?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
 
   updateMany?(entityInfo: IEntityInfo, entities: Array<TModel | any>, criteria?: any, originalEntities?: TModel[]): Observable<TModel[]>;
+
+  upsert?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
+
+  upsertMany?(entityInfo: IEntityInfo, entities: Array<TModel | any>, criteria?: any, originalEntities?: TModel[]): Observable<TModel[]>;
 
   replace?(entityInfo: IEntityInfo, entity: TModel | any, criteria?: any, originalEntity?: TModel): Observable<TModel>;
 

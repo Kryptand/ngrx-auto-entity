@@ -1,6 +1,7 @@
 import { MemoizedSelector } from '@ngrx/store';
 import { Page, Range } from '../models';
-import { EntityIdentity, IEntityDictionary } from './entity-state';
+import { EntityIdentity } from '../types/entity-identity';
+import { IEntityDictionary } from './entity-state';
 
 /**
  * Structure of a Selector Map defining all the selectors that may
@@ -11,6 +12,7 @@ export interface ISelectorMap<TParentState, TModel> {
   selectEntities: MemoizedSelector<object | TParentState, IEntityDictionary<TModel>>;
   selectAll: MemoizedSelector<object | TParentState, TModel[]>;
   selectAllSorted: MemoizedSelector<object | TParentState, TModel[]>;
+  selectCustomSorted: MemoizedSelector<object | TParentState, TModel[]>;
   selectTotal: MemoizedSelector<object | TParentState, number>;
   selectCurrentEntity: MemoizedSelector<object | TParentState, TModel | null>;
   selectCurrentEntityKey: MemoizedSelector<object | TParentState, EntityIdentity | null>;

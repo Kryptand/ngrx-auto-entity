@@ -1,52 +1,47 @@
-import { Store } from '@ngrx/store';
-import { Observable } from 'rxjs';
-import { first } from 'rxjs/operators';
-import {
-  Change,
-  Clear,
-  Create,
-  CreateMany,
-  Delete,
-  DeleteByKey,
-  DeleteMany,
-  DeleteManyByKeys,
-  Deselect,
-  DeselectAll,
-  DeselectAllDeleteDelay,
-  DeselectDeleteDelay,
-  DeselectDeleteDelayByKey,
-  DeselectMany,
-  DeselectManyByKeys,
-  Edit,
-  EndEdit,
-  Load,
-  LoadAll,
-  LoadMany,
-  LoadPage,
-  LoadRange,
-  Replace,
-  ReplaceMany,
-  Select,
-  SelectByKey,
-  SelectDeleteDelay,
-  SelectDeleteDelayByKey,
-  SelectMany,
-  SelectManyByKeys,
-  SelectMore,
-  SelectMoreByKeys,
-  SynchronizeDelayDelete,
-  Update,
-  UpdateMany
-} from '../actions/actions';
-import { Page, Range } from '../models';
-import { EntityIdentity, IEntityDictionary } from './entity-state';
-import { IEntityFacade } from './facade';
-import { ISelectorMap } from './selector-map';
-
 /**
  * Builds a new facade class for the specified entity model and parent state.
  * @param selectors - the selector map for the specified entity
  */
+import { Store } from '@ngrx/store';
+import { Observable } from 'rxjs';
+import { first } from 'rxjs/operators';
+
+import {
+  Clear, DeselectAllDeleteDelay,
+  DeselectDeleteDelay,
+  DeselectDeleteDelayByKey,
+  SelectDeleteDelay,
+  SelectDeleteDelayByKey, SynchronizeDelayDelete
+} from '../actions/actions';
+import { Create, CreateMany } from '../actions/create-actions';
+import { Delete, DeleteMany } from '../actions/delete-actions';
+import { DeleteByKey, DeleteManyByKeys } from '../actions/delete-by-key-actions';
+import { Deselect, DeselectAll, DeselectMany, DeselectManyByKeys } from '../actions/deselection-actions';
+import { Change, Edit, EditByKey, EditNew, EndEdit } from '../actions/edit-actions';
+import { Load, LoadIfNecessary } from '../actions/load-actions';
+import { LoadAll, LoadAllIfNecessary } from '../actions/load-all-actions';
+import { LoadMany, LoadManyIfNecessary } from '../actions/load-many-actions';
+import { LoadPage, LoadPageIfNecessary } from '../actions/load-page-actions';
+import { LoadRange, LoadRangeIfNecessary } from '../actions/load-range-actions';
+import { Replace, ReplaceMany } from '../actions/replace-actions';
+import {
+  Select,
+  SelectByKey,
+  SelectMany,
+  SelectManyByKeys,
+  SelectMore,
+  SelectMoreByKeys
+} from '../actions/selection-actions';
+import { Update, UpdateMany } from '../actions/update-actions';
+import { Upsert, UpsertMany } from '../actions/upsert-actions';
+import { Page, Range } from '../models';
+import { EntityIdentity } from '../types/entity-identity';
+import { IEntityDictionary } from './entity-state';
+import { IEntityFacade } from './facade';
+import { ISelectorMap } from './selector-map';
+
+
+
 export const buildFacade = <TModel, TParentState>(selectors: ISelectorMap<TParentState, TModel>) => {
   const BaseFacade = class Facade implements IEntityFacade<TModel> {
     modelType: new () => TModel;
@@ -55,215 +50,291 @@ export const buildFacade = <TModel, TParentState>(selectors: ISelectorMap<TParen
     constructor(modelType: new () => TModel, store: Store<any>) {
       this.modelType = modelType;
       this.store = store;
+
+      this.all$ = this.store.select(selectors.selectAll);
+      this.sorted$ = this.store.select(selectors.selectAllSorted);
+      this.entities$ = this.store.select(selectors.selectEntities);
+      this.ids$ = this.store.select(selectors.selectIds);
+      this.total$ = this.store.select(selectors.selectTotal);
+      this.current$ = this.store.select(selectors.selectCurrentEntity);
+      this.currentKey$ = this.store.select(selectors.selectCurrentEntityKey);
+      this.currentSet$ = this.store.select(selectors.selectCurrentEntities);
+      this.currentSetKeys$ = this.store.select(selectors.selectCurrentEntitiesKeys);
+      this.edited$ = this.store.select(selectors.selectEditedEntity);
+      this.isDirty$ = this.store.select(selectors.selectIsDirty);
+      this.currentPage$ = this.store.select(selectors.selectCurrentPage);
+      this.currentRange$ = this.store.select(selectors.selectCurrentRange);
+      this.totalPageable$ = this.store.select(selectors.selectTotalPageable);
+      this.isLoading$ = this.store.select(selectors.selectIsLoading);
+      this.isSaving$ = this.store.select(selectors.selectIsSaving);
+      this.isDeleting$ = this.store.select(selectors.selectIsDeleting);
+      this.loadedAt$ = this.store.select(selectors.selectLoadedAt);
+      this.savedAt$ = this.store.select(selectors.selectSavedAt);
+      this.createdAt$ = this.store.select(selectors.selectCreatedAt);
+      this.deletedAt$ = this.store.select(selectors.selectDeletedAt);
+      this.delayedDeleteKeys$=this.store.select(selectors.selectDelayedDeleteEntityKeys);
+      this.delayedDelete$=this.store.select(selectors.selectDelayedDeleteEntities);
     }
 
     // region Selections
-    get all$(): Observable<TModel[]> {
-      return this.store.select(selectors.selectAll);
-    }
+    all$: Observable<TModel[]>;
+    sorted$: Observable<TModel[]>;
+    entities$: Observable<IEntityDictionary<TModel>>;
+    ids$: Observable<EntityIdentity[]>;
+    total$: Observable<number>;
+    current$: Observable<TModel>;
+    currentKey$: Observable<EntityIdentity>;
+    currentSet$: Observable<TModel[]>;
+    currentSetKeys$: Observable<EntityIdentity[]>;
+    edited$: Observable<Partial<TModel>>;
+    isDirty$: Observable<boolean>;
+    currentPage$: Observable<Page>;
+    currentRange$: Observable<Range>;
+    totalPageable$: Observable<number>;
+    isLoading$: Observable<boolean>;
+    isSaving$: Observable<boolean>;
+    isDeleting$: Observable<boolean>;
+    loadedAt$: Observable<Date>;
+    savedAt$: Observable<Date>;
+    createdAt$: Observable<Date>;
+    deletedAt$: Observable<Date>;
+    delayedDeleteKeys$: Observable<EntityIdentity[]>;
+    delayedDelete$:Observable<TModel[]>;
 
-    get sorted$(): Observable<TModel[]> {
-      return this.store.select(selectors.selectAllSorted);
-    }
-
-    get entities$(): Observable<IEntityDictionary<TModel>> {
-      return this.store.select(selectors.selectEntities);
-    }
-
-    get ids$(): Observable<EntityIdentity[]> {
-      return this.store.select(selectors.selectIds);
-    }
-
-    get total$(): Observable<number> {
-      return this.store.select(selectors.selectTotal);
-    }
-
-    get current$(): Observable<TModel> {
-      return this.store.select(selectors.selectCurrentEntity);
-    }
-
-    get currentKey$(): Observable<EntityIdentity> {
-      return this.store.select(selectors.selectCurrentEntityKey);
-    }
-
-    get currentSet$(): Observable<TModel[]> {
-      return this.store.select(selectors.selectCurrentEntities);
-    }
-
-    get currentSetKeys$(): Observable<EntityIdentity[]> {
-      return this.store.select(selectors.selectCurrentEntitiesKeys);
-    }
-
-    get edited$(): Observable<Partial<TModel>> {
-      return this.store.select(selectors.selectEditedEntity);
-    }
-
-    get isDirty$(): Observable<boolean> {
-      return this.store.select(selectors.selectIsDirty);
-    }
-
-    get currentPage$(): Observable<Page> {
-      return this.store.select(selectors.selectCurrentPage);
-    }
-
-    get currentRange$(): Observable<Range> {
-      return this.store.select(selectors.selectCurrentRange);
-    }
-
-    get totalPageable$(): Observable<number> {
-      return this.store.select(selectors.selectTotalPageable);
-    }
-
-    get isLoading$(): Observable<boolean> {
-      return this.store.select(selectors.selectIsLoading);
-    }
-
-    get isSaving$(): Observable<boolean> {
-      return this.store.select(selectors.selectIsSaving);
-    }
-
-    get isDeleting$(): Observable<boolean> {
-      return this.store.select(selectors.selectIsDeleting);
-    }
-
-    get loadedAt$(): Observable<Date> {
-      return this.store.select(selectors.selectLoadedAt);
-    }
-
-    get savedAt$(): Observable<Date> {
-      return this.store.select(selectors.selectSavedAt);
-    }
-
-    get createdAt$(): Observable<Date> {
-      return this.store.select(selectors.selectCreatedAt);
-    }
-
-    get deletedAt$(): Observable<Date> {
-      return this.store.select(selectors.selectDeletedAt);
-    }
-    get delayedDeleteKeys$(): Observable<EntityIdentity[]> {
-      return this.store.select(selectors.selectDelayedDeleteEntityKeys);
-    }
-    get delayedDelete$(): Observable<TModel[]> {
-      return this.store.select(selectors.selectDelayedDeleteEntities);
+    customSorted$(name: string): Observable<TModel[]> {
+      return this.store.select(selectors.selectCustomSorted, { name });
     }
     // endregion
 
-    // region Dispatches
-    select(entity: TModel): void {
-      this.store.dispatch(new Select(this.modelType, entity));
+    // region Activities
+    select(entity: TModel, correlationId?: string): string {
+      const action = new Select(this.modelType, entity, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    selectByKey(key: EntityIdentity): void {
-      this.store.dispatch(new SelectByKey(this.modelType, key));
+    selectByKey(key: EntityIdentity, correlationId?: string): string {
+      const action = new SelectByKey(this.modelType, key, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    selectMany(entities: TModel[]): void {
-      this.store.dispatch(new SelectMany(this.modelType, entities));
+    selectMany(entities: TModel[], correlationId?: string): string {
+      const action = new SelectMany(this.modelType, entities, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    selectMore(entities: TModel[]): void {
-      this.store.dispatch(new SelectMore(this.modelType, entities));
+    selectMore(entities: TModel[], correlationId?: string): string {
+      const action = new SelectMore(this.modelType, entities, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    selectManyByKeys(keys: EntityIdentity[]): void {
-      this.store.dispatch(new SelectManyByKeys(this.modelType, keys));
+    selectManyByKeys(keys: EntityIdentity[], correlationId?: string): string {
+      const action = new SelectManyByKeys(this.modelType, keys, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    selectMoreByKeys(keys: EntityIdentity[]): void {
-      this.store.dispatch(new SelectMoreByKeys(this.modelType, keys));
+    selectMoreByKeys(keys: EntityIdentity[], correlationId?: string): string {
+      const action = new SelectMoreByKeys(this.modelType, keys, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deselect(): void {
-      this.store.dispatch(new Deselect(this.modelType));
+    deselect(correlationId?: string): string {
+      const action = new Deselect(this.modelType, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deselectMany(entities: TModel[]): void {
-      this.store.dispatch(new DeselectMany(this.modelType, entities));
+    deselectMany(entities: TModel[], correlationId?: string): string {
+      const action = new DeselectMany(this.modelType, entities, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deselectManyByKeys(keys: EntityIdentity[]): void {
-      this.store.dispatch(new DeselectManyByKeys(this.modelType, keys));
+    deselectManyByKeys(keys: EntityIdentity[], correlationId?: string): string {
+      const action = new DeselectManyByKeys(this.modelType, keys, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deselectAll(): void {
-      this.store.dispatch(new DeselectAll(this.modelType));
+    deselectAll(correlationId?: string): string {
+      const action = new DeselectAll(this.modelType, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+    // endregion
+
+
+    edit(entity: Partial<TModel>, correlationId?: string): string {
+      const action = new Edit(this.modelType, entity, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    edit(entity: Partial<TModel>): void {
-      this.store.dispatch(new Edit(this.modelType, entity));
+    editNew(entity?: Partial<TModel>, correlationId?: string): string {
+      const action = new EditNew(this.modelType, entity, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    change(entity: Partial<TModel>): void {
-      this.store.dispatch(new Change(this.modelType, entity));
+    editByKey(key: EntityIdentity, correlationId?: string): string {
+      const action = new EditByKey(this.modelType, key, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    endEdit(): void {
-      this.store.dispatch(new EndEdit(this.modelType));
+    change(entity: Partial<TModel>, correlationId?: string): string {
+      const action = new Change(this.modelType, entity, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    load(keys: any, criteria?: any): void {
-      this.store.dispatch(new Load(this.modelType, keys, criteria));
+    endEdit(correlationId?: string): string {
+      const action = new EndEdit(this.modelType, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    loadMany(criteria?: any): void {
-      this.store.dispatch(new LoadMany(this.modelType, criteria));
+    load(keys?: any, criteria?: any, correlationId?: string): string {
+      const action = new Load(this.modelType, keys, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    loadAll(criteria?: any): void {
-      this.store.dispatch(new LoadAll(this.modelType, criteria));
+    loadIfNecessary(keys?: any, criteria?: any, maxAge?: number, correlationId?: string): string {
+      const action = new LoadIfNecessary(this.modelType, keys, maxAge, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    loadPage(page: Page, criteria?: any): void {
-      this.store.dispatch(new LoadPage(this.modelType, page, criteria));
+    loadMany(criteria?: any, correlationId?: string): string {
+      const action = new LoadMany(this.modelType, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    loadRange(range: Range, criteria?: any): void {
-      this.store.dispatch(new LoadRange(this.modelType, range, criteria));
+    loadManyIfNecessary(criteria?: any, maxAge?: number, correlationId?: string): string {
+      const action = new LoadManyIfNecessary(this.modelType, maxAge, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    create(entity: TModel, criteria?: any): void {
-      this.store.dispatch(new Create(this.modelType, entity, criteria));
+    loadAll(criteria?: any, correlationId?: string): string {
+      const action = new LoadAll(this.modelType, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    createMany(entities: TModel[], criteria?: any): void {
-      this.store.dispatch(new CreateMany(this.modelType, entities, criteria));
+    loadAllIfNecessary(criteria?: any, maxAge?: number, correlationId?: string): string {
+      const action = new LoadAllIfNecessary(this.modelType, maxAge, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    update(entity: TModel, criteria?: any): void {
-      this.store.dispatch(new Update(this.modelType, entity, criteria));
+    loadPage(page: Page, criteria?: any, correlationId?: string): string {
+      const action = new LoadPage(this.modelType, page, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    updateMany(entities: TModel[], criteria?: any): void {
-      this.store.dispatch(new UpdateMany(this.modelType, entities, criteria));
+    loadPageIfNecessary(page: Page, criteria?: any, maxAge?: number, correlationId?: string): string {
+      const action = new LoadPageIfNecessary(this.modelType, page, maxAge, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    replace(entity: TModel, criteria?: any): void {
-      this.store.dispatch(new Replace(this.modelType, entity, criteria));
+    loadRange(range: Range, criteria?: any, correlationId?: string): string {
+      const action = new LoadRange(this.modelType, range, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    replaceMany(entities: TModel[], criteria?: any): void {
-      this.store.dispatch(new ReplaceMany(this.modelType, entities, criteria));
+    loadRangeIfNecessary(range: Range, criteria?: any, maxAge?: number, correlationId?: string): string {
+      const action = new LoadRangeIfNecessary(this.modelType, range, maxAge, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    delete(entity: TModel, criteria?: any): void {
-      this.store.dispatch(new Delete(this.modelType, entity, criteria));
+    create(entity: TModel, criteria?: any, correlationId?: string): string {
+      const action = new Create(this.modelType, entity, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deleteMany(entities: TModel[], criteria?: any): void {
-      this.store.dispatch(new DeleteMany(this.modelType, entities, criteria));
+    createMany(entities: TModel[], criteria?: any, correlationId?: string): string {
+      const action = new CreateMany(this.modelType, entities, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deleteByKey(key: string | number, criteria?: any): void {
-      this.store.dispatch(new DeleteByKey(this.modelType, key, criteria));
+    update(entity: TModel, criteria?: any, correlationId?: string): string {
+      const action = new Update(this.modelType, entity, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    deleteManyByKeys(keys: EntityIdentity[], criteria?: any): void {
-      this.store.dispatch(new DeleteManyByKeys(this.modelType, keys, criteria));
+    updateMany(entities: TModel[], criteria?: any, correlationId?: string): string {
+      const action = new UpdateMany(this.modelType, entities, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
-    clear(): void {
-      this.store.dispatch(new Clear(this.modelType));
+    upsert(entity: TModel, criteria?: any, correlationId?: string): string {
+      const action = new Upsert(this.modelType, entity, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    upsertMany(entities: TModel[], criteria?: any, correlationId?: string): string {
+      const action = new UpsertMany(this.modelType, entities, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    replace(entity: TModel, criteria?: any, correlationId?: string): string {
+      const action = new Replace(this.modelType, entity, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    replaceMany(entities: TModel[], criteria?: any, correlationId?: string): string {
+      const action = new ReplaceMany(this.modelType, entities, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    delete(entity: TModel, criteria?: any, correlationId?: string): string {
+      const action = new Delete(this.modelType, entity, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    deleteMany(entities: TModel[], criteria?: any, correlationId?: string): string {
+      const action = new DeleteMany(this.modelType, entities, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    deleteByKey(key: string | number, criteria?: any, correlationId?: string): string {
+      const action = new DeleteByKey(this.modelType, key, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    deleteManyByKeys(keys: EntityIdentity[], criteria?: any, correlationId?: string): string {
+      const action = new DeleteManyByKeys(this.modelType, keys, criteria, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
+    }
+
+    clear(correlationId?: string): string {
+      const action = new Clear(this.modelType, correlationId);
+      this.store.dispatch(action);
+      return action.correlationId;
     }
 
     selectDeleteDelay(entity: TModel): void {

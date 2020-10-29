@@ -1,7 +1,7 @@
 import { pascalCase } from '../../util/case';
-import { IEntityOptions } from '../decorators/entity';
+import { IEntityOptions } from '../decorators/entity-options';
 import { ENTITY_OPTS_PROP } from '../decorators/entity-tokens';
-import { checkKeyName } from '../decorators/key';
+import { checkKeyName } from '../decorators/key-util';
 import { IEntityInfo } from './entity-info';
 
 /**
@@ -16,10 +16,7 @@ export const setInfo = (type: any): IEntityInfo => {
   checkKeyName(type, modelName);
   return {
     modelType: type,
-    modelName,
-    pluralName: opts.pluralName,
-    uriName: opts.uriName,
-    transform: opts.transform
+    ...opts
   };
 };
 

@@ -1,12 +1,8 @@
-import { IEntityTransformer } from '../decorators/entity';
+import { IEntityOptions } from '../decorators/entity-options';
 
 /**
  * Descriptor of an Entity model and related metadata.
  */
-export interface IEntityInfo {
-  modelName: string;
-  pluralName?: string;
-  uriName?: string;
+export interface IEntityInfo extends IEntityOptions {
   modelType: new () => any;
-  transform?: IEntityTransformer[];
 }

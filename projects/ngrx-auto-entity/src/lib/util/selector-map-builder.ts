@@ -1,17 +1,24 @@
 import { createSelector, MemoizedSelector, Selector } from '@ngrx/store';
+import { entityComparer } from '../decorators/entity-util';
 import { Page, Range } from '../models';
-import { EntityIdentity, IEntityDictionary, IEntityState } from './entity-state';
+import { EntityIdentity } from '../types/entity-identity';
+import { IEntityDictionary, IEntityState } from './entity-state';
 import { ISelectorMap } from './selector-map';
 
 // prettier-ignore
 export const mapToEntityArray =
-  <TState extends IEntityState<TModel>, TModel, TExtra>(state: TState & TExtra): TModel[] =>
-    (!state || !state.ids || !state.entities ? [] : state.ids.map(id => state.entities[id]));
+  <TModel>(entities: IEntityDictionary<TModel>, ids: EntityIdentity[]): TModel[] =>
+    (!ids || !entities ? [] : ids.map(id => entities[id]));
 
 // prettier-ignore
 export const mapToSortedEntityArray =
-  <TState extends IEntityState<TModel>, TModel, TExtra>(state: TState & TExtra, compare: (a, b) => number): TModel[] =>
-    (!state || !state.ids || !state.entities ? [] : state.ids.map(id => state.entities[id])).sort(compare);
+  <TModel>(all: TModel[]): TModel[] =>
+    !all ? [] : all.sort(entityComparer(all));
+
+// prettier-ignore
+export const mapToCustomSortedEntityArray =
+  <TModel>(all: TModel[], { name }): TModel[] =>
+    !all ? [] : all.sort(entityComparer(all, name));
 
 // prettier-ignore
 export const mapToEntities =
@@ -93,22 +100,22 @@ export const mapToIsDeleting =
 // prettier-ignore
 export const mapToLoadedAt =
   <TState extends IEntityState<TModel>, TModel, TExtra>(state: TState & TExtra): Date | null =>
-    (!state ? null : new Date(state.loadedAt));
+    (!state || !state.loadedAt ? null : new Date(state.loadedAt));
 
 // prettier-ignore
 export const mapToSavedAt =
   <TState extends IEntityState<TModel>, TModel, TExtra>(state: TState & TExtra): Date | null =>
-    (!state ? null : new Date(state.savedAt));
+    (!state || !state.savedAt ? null : new Date(state.savedAt));
 
 // prettier-ignore
 export const mapToCreatedAt =
   <TState extends IEntityState<TModel>, TModel, TExtra>(state: TState & TExtra): Date | null =>
-    (!state ? null : new Date(state.createdAt));
+    (!state || !state.createdAt ? null : new Date(state.createdAt));
 
 // prettier-ignore
 export const mapToDeletedAt =
   <TState extends IEntityState<TModel>, TModel, TExtra>(state: TState & TExtra): Date | null =>
-    (!state ? null : new Date(state.deletedAt));
+    (!state || !state.deletedAt ? null : new Date(state.deletedAt));
 
 // prettier-ignore
 export const mapToDelayDeleteIds=
@@ -123,30 +130,55 @@ export const mapToDelayDeleteEntityArray =
 // prettier-ignore
 export const buildSelectorMap = <TParentState, TState extends IEntityState<TModel>, TModel, TExtra>(
   getState: Selector<TParentState, TState & TExtra> | MemoizedSelector<object | TParentState, TState & TExtra>,
-  compareFn?: (a, b) => number
-): ISelectorMap<TParentState, TModel> =>
-  ({
-    selectAll: createSelector(getState, mapToEntityArray),
-    selectAllSorted: createSelector(getState, () => compareFn, mapToSortedEntityArray),
-    selectEntities: createSelector(getState, mapToEntities),
-    selectIds: createSelector(getState, mapToIds),
-    selectTotal: createSelector(getState, mapToTotal),
-    selectCurrentEntity: createSelector(getState, mapToCurrentEntity),
-    selectCurrentEntityKey: createSelector(getState, mapToCurrentEntityKey),
-    selectCurrentEntities: createSelector(getState, mapToCurrentEntities),
-    selectCurrentEntitiesKeys: createSelector(getState, mapToCurrentEntitiesKeys),
-    selectEditedEntity: createSelector(getState, mapToEditedEntity),
-    selectIsDirty: createSelector(getState, mapToIsDirty),
-    selectCurrentPage: createSelector(getState, mapToCurrentPage),
-    selectCurrentRange: createSelector(getState, mapToCurrentRange),
-    selectTotalPageable: createSelector(getState, mapToTotalPageable),
-    selectIsLoading: createSelector(getState, mapToIsLoading),
-    selectIsSaving: createSelector(getState, mapToIsSaving),
-    selectIsDeleting: createSelector(getState, mapToIsDeleting),
-    selectLoadedAt: createSelector(getState, mapToLoadedAt),
-    selectSavedAt: createSelector(getState, mapToSavedAt),
-    selectCreatedAt: createSelector(getState, mapToCreatedAt),
-    selectDeletedAt: createSelector(getState, mapToDeletedAt),
-    selectDelayedDeleteEntities:createSelector(getState, mapToDelayDeleteEntityArray),
-    selectDelayedDeleteEntityKeys:createSelector(getState, mapToDelayDeleteIds),
-  } as ISelectorMap<TParentState, TModel>);
+): ISelectorMap<TParentState, TModel> => {
+  const selectEntities = createSelector(getState, mapToEntities);
+  const selectIds = createSelector(getState, mapToIds);
+  const selectTotal = createSelector(getState, mapToTotal);
+  const selectAll = createSelector(selectEntities, selectIds, mapToEntityArray);
+  const selectAllSorted = createSelector(selectAll, mapToSortedEntityArray);
+  const selectCustomSorted = createSelector(selectAll, mapToCustomSortedEntityArray);
+  const selectCurrentEntity = createSelector(getState, mapToCurrentEntity);
+  const selectCurrentEntityKey = createSelector(getState, mapToCurrentEntityKey);
+  const selectCurrentEntities = createSelector(getState, mapToCurrentEntities);
+  const selectCurrentEntitiesKeys = createSelector(getState, mapToCurrentEntitiesKeys);
+  const selectEditedEntity = createSelector(getState, mapToEditedEntity);
+  const selectIsDirty = createSelector(getState, mapToIsDirty);
+  const selectCurrentPage = createSelector(getState, mapToCurrentPage);
+  const selectCurrentRange = createSelector(getState, mapToCurrentRange);
+  const selectTotalPageable = createSelector(getState, mapToTotalPageable);
+  const selectIsLoading = createSelector(getState, mapToIsLoading);
+  const selectIsSaving = createSelector(getState, mapToIsSaving);
+  const selectIsDeleting = createSelector(getState, mapToIsDeleting);
+  const selectLoadedAt = createSelector(getState, mapToLoadedAt);
+  const selectSavedAt = createSelector(getState, mapToSavedAt);
+  const selectCreatedAt = createSelector(getState, mapToCreatedAt);
+  const selectDeletedAt = createSelector(getState, mapToDeletedAt);
+  const selectDelayedDeleteEntities=createSelector(getState, mapToDelayDeleteEntityArray);
+  const selectDelayedDeleteEntityKeys=createSelector(getState, mapToDelayDeleteIds);
+  return {
+    selectAll,
+    selectAllSorted,
+    selectCustomSorted,
+    selectEntities,
+    selectIds,
+    selectTotal,
+    selectCurrentEntity,
+    selectCurrentEntityKey,
+    selectCurrentEntities,
+    selectCurrentEntitiesKeys,
+    selectEditedEntity,
+    selectIsDirty,
+    selectCurrentPage,
+    selectCurrentRange,
+    selectTotalPageable,
+    selectIsLoading,
+    selectIsSaving,
+    selectIsDeleting,
+    selectLoadedAt,
+    selectSavedAt,
+    selectCreatedAt,
+    selectDeletedAt,
+    selectDelayedDeleteEntityKeys,
+    selectDelayedDeleteEntities
+  } as ISelectorMap<TParentState, TModel>;
+};
